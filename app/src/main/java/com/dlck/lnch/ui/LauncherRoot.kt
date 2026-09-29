@@ -37,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dlck.lnch.R
 import com.dlck.lnch.ai.intent.IntentExecutor
 import com.dlck.lnch.data.apps.AppInfo
@@ -63,8 +62,10 @@ fun LauncherRoot(viewModel: LauncherViewModel) {
     val pinned by viewModel.pinnedKeys.collectAsStateWithLifecycle()
     val hidden by viewModel.hiddenKeys.collectAsStateWithLifecycle()
 
-    val chatViewModel: ChatViewModel = viewModel()
-    val setupViewModel: AiSetupViewModel = viewModel()
+    val chatViewModel: ChatViewModel =
+        androidx.lifecycle.viewmodel.compose.viewModel<ChatViewModel>()
+    val setupViewModel: AiSetupViewModel =
+        androidx.lifecycle.viewmodel.compose.viewModel<AiSetupViewModel>()
 
     val current = backStack.last()
     var sheetApp by remember { mutableStateOf<AppInfo?>(null) }

@@ -54,10 +54,10 @@ class SettingsRepository(private val context: Context) {
     private fun Preferences.toSettings(): LauncherSettings {
         val defaults = LauncherSettings()
         return LauncherSettings(
-            themeMode = this[Keys.themeMode]?.toEnum() ?: defaults.themeMode,
+            themeMode = this[Keys.themeMode]?.toEnum<ThemeMode>() ?: defaults.themeMode,
             dynamicColor = this[Keys.dynamicColor] ?: defaults.dynamicColor,
-            accent = this[Keys.accent]?.toEnum() ?: defaults.accent,
-            language = this[Keys.language]?.toEnum() ?: defaults.language,
+            accent = this[Keys.accent]?.toEnum<AccentColor>() ?: defaults.accent,
+            language = this[Keys.language]?.toEnum<AppLanguage>() ?: defaults.language,
             gridColumns = this[Keys.gridColumns] ?: defaults.gridColumns,
             iconSizeDp = this[Keys.iconSize] ?: defaults.iconSizeDp,
             showLabels = this[Keys.showLabels] ?: defaults.showLabels,
@@ -75,7 +75,7 @@ class SettingsRepository(private val context: Context) {
     }
 
     private inline fun <reified T : Enum<T>> String.toEnum(): T? =
-        runCatching { enumValueOf<T>(this) }.getOrNull()
+        runCatching { enumValueOf<T>(this@toEnum) }.getOrNull()
 
     private suspend fun edit(block: (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {
         context.settingsDataStore.edit(block)

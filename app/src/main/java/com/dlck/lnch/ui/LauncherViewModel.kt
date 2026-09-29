@@ -17,7 +17,9 @@ import com.dlck.lnch.utils.UsageAccess
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -105,7 +107,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 }
                 (local + fromSystem).distinctBy { it.key }.take(8)
             }
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        }.flowOn(Dispatchers.Default)
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     /** Drawer content: pinned apps float to the top, then alphabetical. */
     fun drawerApps(query: String, category: AppCategory?): List<AppInfo> {

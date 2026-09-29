@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.IOException
 
@@ -74,11 +75,11 @@ class AppStateRepository(private val context: Context) {
     suspend fun toggleFavorite(key: String) = context.appStateDataStore.edit { prefs ->
         val current = prefs[Keys.favorites].decodeList().toMutableList()
         if (!current.remove(key)) current.add(key)
-        prefs[Keys.favorites] = json.encodeToString(current)
+        prefs[Keys.favorites] = json.encodeToString(current.toList())
     }
 
     suspend fun setFavorites(keys: List<String>) = context.appStateDataStore.edit { prefs ->
-        prefs[Keys.favorites] = json.encodeToString(keys)
+        prefs[Keys.favorites] = json.encodeToString(keys.toList())
     }
 
     suspend fun togglePinned(key: String) = context.appStateDataStore.edit { prefs ->
@@ -106,7 +107,7 @@ class AppStateRepository(private val context: Context) {
                 .sortedByDescending { it.value.lastLaunchedAt }
                 .take(80)
                 .associate { it.key to it.value }
-            prefs[Keys.usage] = json.encodeToString(trimmed)
+            prefs[Keys.usage] = json.encodeToString(trimmed.toMap())
         }
 
     suspend fun clearUsage() = context.appStateDataStore.edit { it.remove(Keys.usage) }

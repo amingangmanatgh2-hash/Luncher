@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.dlck.lnch.ui.theme.ClockTextStyle
 import com.dlck.lnch.utils.JalaliDate
 import kotlinx.coroutines.delay
@@ -69,7 +70,7 @@ fun ClockWidget(
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dpCompat()),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         if (showClock) {
             Text(
@@ -91,5 +92,3 @@ fun ClockWidget(
         }
     }
 }
-
-private fun Int.dpCompat() = androidx.compose.ui.unit.Dp(this.toFloat())

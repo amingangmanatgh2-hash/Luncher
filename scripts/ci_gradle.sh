@@ -22,18 +22,20 @@ fi
   echo '```'
 } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
 
-ERRORS=$(grep -E '^e: ' "$LOG_FILE" | head -40)
-if [ -z "$ERRORS" ]; then
-  ERRORS=$(grep -E -A 12 '(\* What went wrong|FAILURE: Build failed|Execution failed for task|tests completed,)' "$LOG_FILE" | head -60)
-fi
-if [ -z "$ERRORS" ]; then
-  ERRORS=$(tail -n 60 "$LOG_FILE")
-fi
+emit() {
+  # one annotation per line so the whole list survives the API's message limits
+  printf '%s\n' "$1" | head -n 45 | while IFS= read -r line; do
+    [ -z "$line" ] && continue
+    esc=$(printf '%s' "$line" | head -c 900 | sed -e 's/%/%25/g' -e 's/\r//g')
+    echo "::error::${esc}"
+  done
+}
 
-ESCAPED=$(printf '%s' "$ERRORS" \
-  | head -c 8000 \
-  | sed -e 's/%/%25/g' \
-  | sed -e ':a' -e 'N' -e '$!ba' -e 's/\r/%0D/g' -e 's/\n/%0A/g')
-
-echo "::error title=gradle $*::${ESCAPED}"
+ERRORS=$(grep -E '^e: ' "$LOG_FILE")
+if [ -n "$ERRORS" ]; then
+  emit "$ERRORS"
+else
+  emit "$(grep -E -A 10 '(\* What went wrong|FAILURE: Build failed|Execution failed for task|> Task .* FAILED|tests completed)' "$LOG_FILE" | head -n 45)"
+  emit "$(tail -n 25 "$LOG_FILE")"
+fi
 exit "$STATUS"
