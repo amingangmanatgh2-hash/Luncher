@@ -50,13 +50,13 @@ jobs:
           fi
 
       - name: Unit tests
-        run: gradle --no-daemon --stacktrace testDebugUnitTest
+        run: bash scripts/ci_gradle.sh testDebugUnitTest
 
       - name: Build debug APK
-        run: gradle --no-daemon --stacktrace assembleDebug
+        run: bash scripts/ci_gradle.sh assembleDebug
 
       - name: Build release APK
-        run: gradle --no-daemon --stacktrace assembleRelease
+        run: bash scripts/ci_gradle.sh assembleRelease
 
       - name: Collect APKs
         id: collect
