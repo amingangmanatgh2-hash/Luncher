@@ -1,0 +1,40 @@
+# DLCK LNCH — optional Gemini relay
+# Deploy:  wrangler secret put GEMINI_API_KEY
+#          wrangler secret put CLIENT_TOKENS
+#          wrangler deploy
+#
+# NOTE: secrets are NEVER written in this file. `wrangler secret put` stores them
+# encrypted on Cloudflare's side. Anything under [vars] is public — treat it as
+# readable by anyone who can call the Worker.
+
+name = "dlck-lnch-relay"
+main = "worker.js"
+compatibility_date = "2024-09-01"
+workers_dev = true
+
+[vars]
+# Requests per minute allowed per client token (needs the Durable Object below;
+# without it the Worker still runs, just without throttling).
+RATE_LIMIT_RPM = "20"
+# Restrict browser callers. The Android app is not a browser, so "*" is fine
+# unless you also build a web client.
+ALLOWED_ORIGIN = "*"
+
+# ---------------------------------------------------------------------------
+# Rate limiting (optional). Comment this whole block out if your plan does not
+# include Durable Objects — worker.js degrades gracefully.
+# ---------------------------------------------------------------------------
+[[durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["RateLimiter"]
+
+[observability]
+enabled = true
+
+# Secrets expected at runtime (set with `wrangler secret put <NAME>`):
+#   GEMINI_API_KEY  — the real Google AI Studio key. Stays server-side forever.
+#   CLIENT_TOKENS   — comma separated list of revocable tokens handed to clients.

@@ -30,6 +30,7 @@ class SettingsRepository(private val context: Context) {
         val dynamicColor = booleanPreferencesKey("dynamic_color")
         val accent = stringPreferencesKey("accent")
         val language = stringPreferencesKey("language")
+        val drawerSort = stringPreferencesKey("drawer_sort")
         val gridColumns = intPreferencesKey("grid_columns")
         val iconSize = intPreferencesKey("icon_size")
         val showLabels = booleanPreferencesKey("show_labels")
@@ -58,6 +59,7 @@ class SettingsRepository(private val context: Context) {
             dynamicColor = this[Keys.dynamicColor] ?: defaults.dynamicColor,
             accent = this[Keys.accent]?.toEnum<AccentColor>() ?: defaults.accent,
             language = this[Keys.language]?.toEnum<AppLanguage>() ?: defaults.language,
+            drawerSort = this[Keys.drawerSort]?.toEnum<DrawerSort>() ?: defaults.drawerSort,
             gridColumns = this[Keys.gridColumns] ?: defaults.gridColumns,
             iconSizeDp = this[Keys.iconSize] ?: defaults.iconSizeDp,
             showLabels = this[Keys.showLabels] ?: defaults.showLabels,
@@ -85,6 +87,7 @@ class SettingsRepository(private val context: Context) {
     suspend fun setDynamicColor(enabled: Boolean) = edit { it[Keys.dynamicColor] = enabled }
     suspend fun setAccent(accent: AccentColor) = edit { it[Keys.accent] = accent.name }
     suspend fun setLanguage(language: AppLanguage) = edit { it[Keys.language] = language.name }
+    suspend fun setDrawerSort(sort: DrawerSort) = edit { it[Keys.drawerSort] = sort.name }
     suspend fun setGridColumns(value: Int) = edit { it[Keys.gridColumns] = value.coerceIn(3, 6) }
     suspend fun setIconSize(value: Int) = edit { it[Keys.iconSize] = value.coerceIn(40, 80) }
     suspend fun setShowLabels(value: Boolean) = edit { it[Keys.showLabels] = value }

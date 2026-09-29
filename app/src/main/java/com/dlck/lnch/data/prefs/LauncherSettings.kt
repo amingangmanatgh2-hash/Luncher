@@ -11,6 +11,9 @@ enum class AppLanguage(val tag: String?) {
     PERSIAN("fa"),
 }
 
+/** Ordering applied to the app drawer list. */
+enum class DrawerSort { NAME_ASC, NAME_DESC, MOST_USED, NEWEST }
+
 enum class AccentColor(val seed: Color) {
     CYAN(Color(0xFF22D3EE)),
     VIOLET(Color(0xFF8B5CF6)),
@@ -26,6 +29,8 @@ data class LauncherSettings(
     val dynamicColor: Boolean = true,
     val accent: AccentColor = AccentColor.CYAN,
     val language: AppLanguage = AppLanguage.SYSTEM,
+
+    val drawerSort: DrawerSort = DrawerSort.NAME_ASC,
 
     val gridColumns: Int = 4,
     val iconSizeDp: Int = 56,

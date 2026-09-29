@@ -20,10 +20,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,6 +50,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlck.lnch.R
 import com.dlck.lnch.data.apps.AppCategory
 import com.dlck.lnch.data.apps.AppInfo
+import com.dlck.lnch.data.prefs.DrawerSort
 import com.dlck.lnch.ui.LauncherViewModel
 import com.dlck.lnch.ui.components.AppTile
 import com.dlck.lnch.ui.components.EmptyState
@@ -67,8 +72,8 @@ fun AppDrawerScreen(
     var category by remember { mutableStateOf(initialCategory) }
     val keyboard = LocalSoftwareKeyboardController.current
 
-    val apps = remember(allApps, query, category, pinned) {
-        viewModel.drawerApps(query, category)
+    val apps = remember(allApps, query, category, pinned, settings.drawerSort) {
+        viewModel.drawerApps(query, category, settings.drawerSort)
     }
 
     Column(
@@ -142,6 +147,32 @@ fun AppDrawerScreen(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+
+            var sortMenuOpen by remember { mutableStateOf(false) }
+            Box {
+                IconButton(onClick = { sortMenuOpen = true }) {
+                    Icon(
+                        imageVector = Icons.Filled.SortByAlpha,
+                        contentDescription = stringResource(R.string.drawer_sort_title),
+                    )
+                }
+                DropdownMenu(expanded = sortMenuOpen, onDismissRequest = { sortMenuOpen = false }) {
+                    DrawerSort.entries.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(drawerSortLabel(option)) },
+                            onClick = {
+                                viewModel.setDrawerSort(option)
+                                sortMenuOpen = false
+                            },
+                            leadingIcon = {
+                                if (option == settings.drawerSort) {
+                                    Icon(Icons.Filled.Check, contentDescription = null)
+                                }
+                            },
+                        )
+                    }
+                }
+            }
         }
 
         if (apps.isEmpty()) {
@@ -179,6 +210,16 @@ fun AppDrawerScreen(
         }
     }
 }
+
+@Composable
+fun drawerSortLabel(sort: DrawerSort): String = stringResource(
+    when (sort) {
+        DrawerSort.NAME_ASC -> R.string.drawer_sort_name_asc
+        DrawerSort.NAME_DESC -> R.string.drawer_sort_name_desc
+        DrawerSort.MOST_USED -> R.string.drawer_sort_most_used
+        DrawerSort.NEWEST -> R.string.drawer_sort_newest
+    },
+)
 
 @Composable
 fun categoryLabel(category: AppCategory): String = stringResource(

@@ -14,6 +14,11 @@
     <string name="drawer_search_hint">جستجو در برنامه‌های نصب‌شده</string>
     <string name="drawer_empty">برنامه‌ای با این عبارت پیدا نشد.</string>
     <string name="drawer_app_count">%1$d برنامه</string>
+    <string name="drawer_sort_title">مرتب‌سازی برنامه‌ها</string>
+    <string name="drawer_sort_name_asc">نام (الف تا ی)</string>
+    <string name="drawer_sort_name_desc">نام (ی تا الف)</string>
+    <string name="drawer_sort_most_used">پرکاربردترین</string>
+    <string name="drawer_sort_newest">تازه‌نصب‌شده</string>
 
     <!-- Categories -->
     <string name="category_all">همه</string>

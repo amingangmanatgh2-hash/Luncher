@@ -15,6 +15,11 @@
     <string name="drawer_search_hint">Search installed apps</string>
     <string name="drawer_empty">No apps match your search.</string>
     <string name="drawer_app_count">%1$d apps</string>
+    <string name="drawer_sort_title">Sort apps</string>
+    <string name="drawer_sort_name_asc">Name (A–Z)</string>
+    <string name="drawer_sort_name_desc">Name (Z–A)</string>
+    <string name="drawer_sort_most_used">Most used</string>
+    <string name="drawer_sort_newest">Recently installed</string>
 
     <!-- Categories -->
     <string name="category_all">All</string>

@@ -10,6 +10,7 @@ import com.dlck.lnch.data.apps.AppInfo
 import com.dlck.lnch.data.prefs.AccentColor
 import com.dlck.lnch.data.prefs.AppLanguage
 import com.dlck.lnch.data.prefs.AppStateRepository
+import com.dlck.lnch.data.prefs.DrawerSort
 import com.dlck.lnch.data.prefs.LauncherSettings
 import com.dlck.lnch.data.prefs.ThemeMode
 import com.dlck.lnch.graph
@@ -110,17 +111,35 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }.flowOn(Dispatchers.Default)
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    /** Drawer content: pinned apps float to the top, then alphabetical. */
-    fun drawerApps(query: String, category: AppCategory?): List<AppInfo> {
+    /**
+     * Drawer content. Pinned apps always float to the top; everything below them follows the
+     * user's chosen [DrawerSort]. Ties fall back to the label so the order is always stable.
+     */
+    fun drawerApps(
+        query: String,
+        category: AppCategory?,
+        sort: DrawerSort = settings.value.drawerSort,
+    ): List<AppInfo> {
         val pinned = pinnedKeys.value
+        val usage = appState.value.usage
+        val byLabel = compareBy<AppInfo> { it.label.lowercase() }
+
+        val comparator: Comparator<AppInfo> = when (sort) {
+            DrawerSort.NAME_ASC -> byLabel
+            DrawerSort.NAME_DESC -> compareByDescending<AppInfo> { it.label.lowercase() }
+            DrawerSort.MOST_USED ->
+                compareByDescending<AppInfo> { usage[it.key]?.launchCount ?: 0 }
+                    .thenByDescending { usage[it.key]?.lastLaunchedAt ?: 0L }
+                    .then(byLabel)
+            DrawerSort.NEWEST ->
+                compareByDescending<AppInfo> { it.firstInstallTime }.then(byLabel)
+        }
+
         return visibleApps.value
             .asSequence()
             .filter { category == null || it.category == category }
             .filter { query.isBlank() || matches(it, query) }
-            .sortedWith(
-                compareByDescending<AppInfo> { pinned.contains(it.key) }
-                    .thenBy { it.label.lowercase() },
-            )
+            .sortedWith(compareByDescending<AppInfo> { pinned.contains(it.key) }.then(comparator))
             .toList()
     }
 
@@ -226,6 +245,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun setDynamicColor(v: Boolean) = viewModelScope.launch { settingsRepository.setDynamicColor(v) }
     fun setAccent(a: AccentColor) = viewModelScope.launch { settingsRepository.setAccent(a) }
     fun setLanguage(l: AppLanguage) = viewModelScope.launch { settingsRepository.setLanguage(l) }
+    fun setDrawerSort(sort: DrawerSort) = viewModelScope.launch { settingsRepository.setDrawerSort(sort) }
     fun setGridColumns(v: Int) = viewModelScope.launch { settingsRepository.setGridColumns(v) }
     fun setIconSize(v: Int) = viewModelScope.launch { settingsRepository.setIconSize(v) }
     fun setShowLabels(v: Boolean) = viewModelScope.launch { settingsRepository.setShowLabels(v) }
