@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DLCK LNCH</string>
+    <string name="app_tagline">Smart AI Launcher</string>
+
+    <!-- Home -->
+    <string name="home_search_hint">Search apps, ask AI…</string>
+    <string name="home_favorites">Favorites</string>
+    <string name="home_recent">Recently used</string>
+    <string name="home_no_favorites">Long-press any app and choose “Add to favorites”.</string>
+    <string name="home_hint_swipe">Swipe up for all apps · Swipe down to search</string>
+
+    <!-- Drawer -->
+    <string name="drawer_title">All apps</string>
+    <string name="drawer_search_hint">Search installed apps</string>
+    <string name="drawer_empty">No apps match your search.</string>
+    <string name="drawer_app_count">%1$d apps</string>
+
+    <!-- Categories -->
+    <string name="category_all">All</string>
+    <string name="category_game">Games</string>
+    <string name="category_social">Social</string>
+    <string name="category_productivity">Productivity</string>
+    <string name="category_media">Media</string>
+    <string name="category_news">News</string>
+    <string name="category_maps">Maps</string>
+    <string name="category_system">System</string>
+    <string name="category_other">Other</string>
+
+    <!-- App menu -->
+    <string name="menu_open">Open</string>
+    <string name="menu_add_favorite">Add to favorites</string>
+    <string name="menu_remove_favorite">Remove from favorites</string>
+    <string name="menu_pin">Pin to top</string>
+    <string name="menu_unpin">Unpin</string>
+    <string name="menu_app_info">App info</string>
+    <string name="menu_uninstall">Uninstall</string>
+    <string name="menu_hide">Hide from drawer</string>
+    <string name="menu_unhide">Show in drawer</string>
+    <string name="menu_cannot_uninstall">System apps cannot be uninstalled.</string>
+
+    <!-- Search -->
+    <string name="search_title">Search</string>
+    <string name="search_apps">Apps</string>
+    <string name="search_actions">Actions</string>
+    <string name="search_ask_ai">Ask the AI assistant: “%1$s”</string>
+    <string name="search_web_for">Search the web for “%1$s”</string>
+
+    <!-- Navigation / general -->
+    <string name="action_back">Back</string>
+    <string name="action_close">Close</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_confirm">Confirm</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_copy">Copy</string>
+    <string name="action_save">Save</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_open_settings">Open settings</string>
+    <string name="copied">Copied to clipboard</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_system">Follow system</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_dynamic_color">Material You colors</string>
+    <string name="settings_dynamic_color_desc">Use wallpaper colors (Android 12+)</string>
+    <string name="settings_accent">Accent color</string>
+    <string name="settings_layout">Layout</string>
+    <string name="settings_grid_columns">Grid columns</string>
+    <string name="settings_icon_size">Icon size</string>
+    <string name="settings_show_labels">Show app names</string>
+    <string name="settings_blur">Background dim / blur</string>
+    <string name="settings_animations">Animations</string>
+    <string name="settings_animations_desc">Turn off for maximum speed on low-end devices</string>
+    <string name="settings_home">Home screen</string>
+    <string name="settings_show_clock">Show clock</string>
+    <string name="settings_show_date">Show date</string>
+    <string name="settings_show_search">Show search bar</string>
+    <string name="settings_show_recent">Show recently used</string>
+    <string name="settings_clock_24h">24-hour clock</string>
+    <string name="settings_persian_date">Show Persian (Jalali) date</string>
+    <string name="settings_wallpaper">Change wallpaper</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_system">System default</string>
+    <string name="settings_language_en">English</string>
+    <string name="settings_language_fa">فارسی</string>
+    <string name="settings_set_default">Set DLCK LNCH as home app</string>
+    <string name="settings_set_default_desc">Opens the Android home-app picker</string>
+    <string name="settings_is_default">DLCK LNCH is your current home app ✓</string>
+    <string name="settings_not_default">DLCK LNCH is not your home app yet</string>
+    <string name="settings_ai_section">AI assistant</string>
+    <string name="settings_ai_setup">AI Setup</string>
+    <string name="settings_ai_setup_desc">Gemini connection, credential and tutorial</string>
+    <string name="settings_about">About</string>
+    <string name="settings_version">Version %1$s</string>
+    <string name="settings_reset">Reset all settings</string>
+    <string name="settings_usage_access">Usage access</string>
+    <string name="settings_usage_access_desc">Optional. Lets “Recently used” reflect real system usage. Without it, DLCK LNCH uses its own on-device launch history and never reads other apps\' data.</string>
+    <string name="settings_usage_granted">Granted</string>
+    <string name="settings_usage_denied">Not granted</string>
+
+    <!-- AI chat -->
+    <string name="ai_title">AI Assistant</string>
+    <string name="ai_input_hint">Ask anything, or tell me what to open…</string>
+    <string name="ai_send">Send</string>
+    <string name="ai_clear">Clear chat</string>
+    <string name="ai_thinking">Thinking…</string>
+    <string name="ai_typing">Assistant is typing…</string>
+    <string name="ai_empty_title">How can I help?</string>
+    <string name="ai_empty_body">Try one of these:</string>
+    <string name="ai_example_1">Open YouTube</string>
+    <string name="ai_example_2">Show the apps I used today</string>
+    <string name="ai_example_3">Open Wi-Fi settings</string>
+    <string name="ai_example_4">Find my game apps</string>
+    <string name="ai_example_5">Set a 10 minute timer</string>
+    <string name="ai_example_6">Suggest a few apps for studying</string>
+    <string name="ai_not_configured_title">Gemini is not connected</string>
+    <string name="ai_not_configured_body">Add your Gemini API key in AI Setup to enable the assistant.</string>
+    <string name="ai_go_to_setup">Go to AI Setup</string>
+    <string name="ai_offline">You appear to be offline. Check your connection and retry.</string>
+    <string name="ai_confirm_action">Confirm action</string>
+    <string name="ai_action_pending">The assistant wants to: %1$s</string>
+    <string name="ai_action_done">Done: %1$s</string>
+    <string name="ai_action_failed">Could not complete: %1$s</string>
+    <string name="ai_you">You</string>
+    <string name="ai_assistant">Assistant</string>
+
+    <!-- Intents (human readable descriptions used in confirmation cards) -->
+    <string name="intent_open_app">Open %1$s</string>
+    <string name="intent_search_app">Search apps for “%1$s”</string>
+    <string name="intent_open_settings">Open the %1$s settings screen</string>
+    <string name="intent_show_apps">Show %1$s apps</string>
+    <string name="intent_create_timer">Start a timer for %1$s</string>
+    <string name="intent_search_web">Search the web for “%1$s”</string>
+    <string name="intent_no_app_found">No installed app matches “%1$s”.</string>
+    <string name="intent_no_handler">No app on this device can handle that action.</string>
+
+    <!-- AI Setup screen -->
+    <string name="setup_title">AI Setup</string>
+    <string name="setup_status">Gemini connection status</string>
+    <string name="setup_status_connected">Connected</string>
+    <string name="setup_status_not_configured">Not configured</string>
+    <string name="setup_status_unverified">Key saved — not tested yet</string>
+    <string name="setup_status_error">Connection problem</string>
+    <string name="setup_last_checked">Last checked: %1$s</string>
+    <string name="setup_never">never</string>
+    <string name="setup_config">API configuration</string>
+    <string name="setup_key_label">Gemini API key</string>
+    <string name="setup_key_hint">Paste your key (AIza…)</string>
+    <string name="setup_key_stored">A key is stored securely on this device.</string>
+    <string name="setup_key_none">No key stored on this device.</string>
+    <string name="setup_key_never_shown">For your safety the stored key is never displayed again, not even here.</string>
+    <string name="setup_model">Model</string>
+    <string name="setup_base_url">API endpoint (advanced)</string>
+    <string name="setup_base_url_desc">Leave as default to call Google directly. Point it at your own proxy for production builds so the key never lives on the device.</string>
+    <string name="setup_save_key">Save credential</string>
+    <string name="setup_test">Test connection</string>
+    <string name="setup_testing">Testing…</string>
+    <string name="setup_change">Change credential</string>
+    <string name="setup_delete">Delete credential</string>
+    <string name="setup_delete_confirm">Delete the stored Gemini key from this device? The assistant will stop working until you add a new one.</string>
+    <string name="setup_deleted">Credential deleted from this device.</string>
+    <string name="setup_saved">Credential saved to the encrypted store.</string>
+    <string name="setup_security">Security information</string>
+    <string name="setup_security_body">• The key is stored with Android EncryptedSharedPreferences (AES-256-GCM, hardware-backed keystore).\n• It is never written to the source code, the APK, logs, or Git.\n• It is excluded from cloud backup and device transfer.\n• It is sent only over HTTPS to the endpoint shown above.\n• Uninstalling DLCK LNCH destroys the stored key.</string>
+    <string name="setup_usage">Usage information</string>
+    <string name="setup_usage_body">Every message you send uses your own Gemini quota. Free-tier keys are rate limited per minute and per day. Check quota and spending in Google AI Studio → “Get API key” → “Usage”, or in Google Cloud Console if your key is attached to a billed project.</string>
+    <string name="setup_open_ai_studio">Open Google AI Studio</string>
+    <string name="setup_open_docs">Open Gemini API docs</string>
+    <string name="setup_open_usage">Open usage &amp; billing</string>
+    <string name="setup_tutorial">Tutorial</string>
+    <string name="setup_tutorial_step1">1. Open Google AI Studio and sign in with your Google account.</string>
+    <string name="setup_tutorial_step2">2. Tap “Get API key” → “Create API key” and copy it.</string>
+    <string name="setup_tutorial_step3">3. Come back here, paste it into the field above and tap “Save credential”.</string>
+    <string name="setup_tutorial_step4">4. Tap “Test connection”. A green “Connected” badge means everything works.</string>
+    <string name="setup_tutorial_step5">5. Open the AI Assistant and try “Open Wi-Fi settings”.</string>
+    <string name="setup_tutorial_step6">6. To rotate a key: delete it here, create a new one in AI Studio, then save it again.</string>
+    <string name="setup_empty_key_error">Please paste a key first.</string>
+    <string name="setup_key_format_warning">That does not look like a Google API key (they usually start with “AIza”). Saving anyway.</string>
+
+    <!-- Gemini errors -->
+    <string name="err_no_key">No API key configured. Add one in AI Setup.</string>
+    <string name="err_invalid_key">The API key was rejected as invalid. Create a new key in Google AI Studio and save it again.</string>
+    <string name="err_permission">This key is not allowed to call the Gemini API. Check that the Generative Language API is enabled for the key\'s project and that no HTTP-referrer/IP restriction blocks it.</string>
+    <string name="err_quota">Rate limit or quota exceeded (HTTP 429). Wait a minute and retry, or raise your quota in Google Cloud Console.</string>
+    <string name="err_model">The selected model is not available for this key. Pick a different model in AI Setup.</string>
+    <string name="err_server">Google returned a temporary server error (HTTP %1$d). Please retry in a moment.</string>
+    <string name="err_network">Network error: could not reach the Gemini endpoint. Check your internet connection or proxy address.</string>
+    <string name="err_timeout">The request timed out. Check your connection and retry.</string>
+    <string name="err_safety">The response was blocked by Gemini\'s safety filters. Try rephrasing your request.</string>
+    <string name="err_parse">The response from Gemini could not be understood.</string>
+    <string name="err_unknown">Unexpected error: %1$s</string>
+
+    <!-- Settings deep-link targets -->
+    <string name="settings_target_wifi">Wi-Fi</string>
+    <string name="settings_target_bluetooth">Bluetooth</string>
+    <string name="settings_target_display">Display</string>
+    <string name="settings_target_sound">Sound</string>
+    <string name="settings_target_battery">Battery</string>
+    <string name="settings_target_apps">Apps</string>
+    <string name="settings_target_location">Location</string>
+    <string name="settings_target_storage">Storage</string>
+    <string name="settings_target_security">Security</string>
+    <string name="settings_target_network">Network &amp; internet</string>
+    <string name="settings_target_date">Date &amp; time</string>
+    <string name="settings_target_language">Languages</string>
+    <string name="settings_target_accessibility">Accessibility</string>
+    <string name="settings_target_home">Default home app</string>
+    <string name="settings_target_notifications">Notifications</string>
+    <string name="settings_target_main">System settings</string>
+</resources>

@@ -1,0 +1,55 @@
+# ---------------------------------------------------------------
+# SECRETS / CREDENTIALS — never commit these
+# ---------------------------------------------------------------
+.env
+.env.*
+!.env.example
+local.properties
+*.key
+*.pem
+*.p12
+*.jks
+*.keystore
+secrets.*
+credentials.*
+gemini.properties
+keystore.properties
+service-account*.json
+
+# ---------------------------------------------------------------
+# Android / Gradle
+# ---------------------------------------------------------------
+*.iml
+.gradle/
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+out/
+release/
+app/release/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+bin/
+gen/
+lint-results*.html
+lint-results*.xml
+
+# ---------------------------------------------------------------
+# IDE
+# ---------------------------------------------------------------
+.idea/
+!.idea/codeStyles/
+.DS_Store
+Thumbs.db
+*.swp
+
+# ---------------------------------------------------------------
+# Build/tooling scratch produced by the docs pipeline
+# ---------------------------------------------------------------
+docs/video/.render/
+.venv/
+__pycache__/

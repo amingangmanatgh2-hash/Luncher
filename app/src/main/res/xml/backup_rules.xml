@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Backup is disabled at the application level (android:allowBackup="false").
+  This file additionally excludes the encrypted credential store so that the
+  Gemini API key can never leave the device through a backup transport.
+-->
+<full-backup-content>
+    <exclude
+        domain="sharedpref"
+        path="dlck_lnch_secure_prefs.xml" />
+    <exclude
+        domain="file"
+        path="datastore/" />
+</full-backup-content>

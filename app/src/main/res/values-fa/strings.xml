@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_tagline">لانچر هوشمند هوش مصنوعی</string>
+
+    <!-- Home -->
+    <string name="home_search_hint">جستجوی برنامه یا پرسش از هوش مصنوعی…</string>
+    <string name="home_favorites">علاقه‌مندی‌ها</string>
+    <string name="home_recent">اخیراً استفاده‌شده</string>
+    <string name="home_no_favorites">روی هر برنامه نگه دارید و «افزودن به علاقه‌مندی‌ها» را بزنید.</string>
+    <string name="home_hint_swipe">کشیدن به بالا: همه برنامه‌ها · کشیدن به پایین: جستجو</string>
+
+    <!-- Drawer -->
+    <string name="drawer_title">همه برنامه‌ها</string>
+    <string name="drawer_search_hint">جستجو در برنامه‌های نصب‌شده</string>
+    <string name="drawer_empty">برنامه‌ای با این عبارت پیدا نشد.</string>
+    <string name="drawer_app_count">%1$d برنامه</string>
+
+    <!-- Categories -->
+    <string name="category_all">همه</string>
+    <string name="category_game">بازی</string>
+    <string name="category_social">اجتماعی</string>
+    <string name="category_productivity">بهره‌وری</string>
+    <string name="category_media">چندرسانه‌ای</string>
+    <string name="category_news">خبری</string>
+    <string name="category_maps">نقشه</string>
+    <string name="category_system">سیستمی</string>
+    <string name="category_other">سایر</string>
+
+    <!-- App menu -->
+    <string name="menu_open">باز کردن</string>
+    <string name="menu_add_favorite">افزودن به علاقه‌مندی‌ها</string>
+    <string name="menu_remove_favorite">حذف از علاقه‌مندی‌ها</string>
+    <string name="menu_pin">سنجاق به بالا</string>
+    <string name="menu_unpin">برداشتن سنجاق</string>
+    <string name="menu_app_info">اطلاعات برنامه</string>
+    <string name="menu_uninstall">حذف نصب</string>
+    <string name="menu_hide">پنهان کردن از لیست</string>
+    <string name="menu_unhide">نمایش در لیست</string>
+    <string name="menu_cannot_uninstall">برنامه‌های سیستمی قابل حذف نیستند.</string>
+
+    <!-- Search -->
+    <string name="search_title">جستجو</string>
+    <string name="search_apps">برنامه‌ها</string>
+    <string name="search_actions">اقدام‌ها</string>
+    <string name="search_ask_ai">پرسیدن از دستیار هوش مصنوعی: «%1$s»</string>
+    <string name="search_web_for">جستجوی «%1$s» در وب</string>
+
+    <!-- General -->
+    <string name="action_back">بازگشت</string>
+    <string name="action_close">بستن</string>
+    <string name="action_cancel">انصراف</string>
+    <string name="action_confirm">تأیید</string>
+    <string name="action_retry">تلاش مجدد</string>
+    <string name="action_copy">کپی</string>
+    <string name="action_save">ذخیره</string>
+    <string name="action_delete">حذف</string>
+    <string name="action_open_settings">باز کردن تنظیمات</string>
+    <string name="copied">در کلیپ‌بورد کپی شد</string>
+
+    <!-- Settings -->
+    <string name="settings_title">تنظیمات</string>
+    <string name="settings_appearance">ظاهر</string>
+    <string name="settings_theme">پوسته</string>
+    <string name="settings_theme_system">مطابق سیستم</string>
+    <string name="settings_theme_light">روشن</string>
+    <string name="settings_theme_dark">تیره</string>
+    <string name="settings_dynamic_color">رنگ‌های Material You</string>
+    <string name="settings_dynamic_color_desc">استفاده از رنگ‌های تصویر زمینه (اندروید ۱۲ به بالا)</string>
+    <string name="settings_accent">رنگ تأکیدی</string>
+    <string name="settings_layout">چیدمان</string>
+    <string name="settings_grid_columns">تعداد ستون‌ها</string>
+    <string name="settings_icon_size">اندازه آیکون</string>
+    <string name="settings_show_labels">نمایش نام برنامه‌ها</string>
+    <string name="settings_blur">تیرگی/محوی پس‌زمینه</string>
+    <string name="settings_animations">انیمیشن‌ها</string>
+    <string name="settings_animations_desc">برای حداکثر سرعت روی دستگاه‌های ضعیف خاموش کنید</string>
+    <string name="settings_home">صفحه اصلی</string>
+    <string name="settings_show_clock">نمایش ساعت</string>
+    <string name="settings_show_date">نمایش تاریخ</string>
+    <string name="settings_show_search">نمایش نوار جستجو</string>
+    <string name="settings_show_recent">نمایش اخیراً استفاده‌شده</string>
+    <string name="settings_clock_24h">ساعت ۲۴ ساعته</string>
+    <string name="settings_persian_date">نمایش تاریخ شمسی</string>
+    <string name="settings_wallpaper">تغییر تصویر زمینه</string>
+    <string name="settings_language">زبان</string>
+    <string name="settings_language_system">پیش‌فرض سیستم</string>
+    <string name="settings_set_default">انتخاب DLCK LNCH به عنوان صفحه اصلی</string>
+    <string name="settings_set_default_desc">انتخابگر لانچر اندروید را باز می‌کند</string>
+    <string name="settings_is_default">DLCK LNCH هم‌اکنون لانچر پیش‌فرض شماست ✓</string>
+    <string name="settings_not_default">DLCK LNCH هنوز لانچر پیش‌فرض نیست</string>
+    <string name="settings_ai_section">دستیار هوش مصنوعی</string>
+    <string name="settings_ai_setup">راه‌اندازی AI</string>
+    <string name="settings_ai_setup_desc">اتصال Gemini، کلید و آموزش</string>
+    <string name="settings_about">درباره</string>
+    <string name="settings_version">نسخه %1$s</string>
+    <string name="settings_reset">بازنشانی همه تنظیمات</string>
+    <string name="settings_usage_access">دسترسی آمار استفاده</string>
+    <string name="settings_usage_access_desc">اختیاری. باعث می‌شود «اخیراً استفاده‌شده» بر اساس آمار واقعی سیستم باشد. بدون آن، لانچر فقط از تاریخچه اجرای داخلی خودش استفاده می‌کند و به داده‌های برنامه‌های دیگر دسترسی ندارد.</string>
+    <string name="settings_usage_granted">داده شده</string>
+    <string name="settings_usage_denied">داده نشده</string>
+
+    <!-- AI chat -->
+    <string name="ai_title">دستیار هوشمند</string>
+    <string name="ai_input_hint">هر چیزی بپرسید یا بگویید چه چیزی را باز کنم…</string>
+    <string name="ai_send">ارسال</string>
+    <string name="ai_clear">پاک کردن گفتگو</string>
+    <string name="ai_thinking">در حال فکر کردن…</string>
+    <string name="ai_typing">دستیار در حال نوشتن است…</string>
+    <string name="ai_empty_title">چه کمکی از من برمی‌آید؟</string>
+    <string name="ai_empty_body">این‌ها را امتحان کنید:</string>
+    <string name="ai_example_1">یوتیوب رو باز کن</string>
+    <string name="ai_example_2">برنامه‌هایی که امروز استفاده کردم رو نشون بده</string>
+    <string name="ai_example_3">تنظیمات وای‌فای رو باز کن</string>
+    <string name="ai_example_4">برنامه‌های بازی رو پیدا کن</string>
+    <string name="ai_example_5">یه تایمر ۱۰ دقیقه‌ای بساز</string>
+    <string name="ai_example_6">چند تا برنامه برای درس خوندن پیشنهاد بده</string>
+    <string name="ai_not_configured_title">Gemini متصل نیست</string>
+    <string name="ai_not_configured_body">برای فعال شدن دستیار، کلید Gemini را در بخش «راه‌اندازی AI» وارد کنید.</string>
+    <string name="ai_go_to_setup">رفتن به راه‌اندازی AI</string>
+    <string name="ai_offline">به نظر می‌رسد آفلاین هستید. اتصال را بررسی و دوباره تلاش کنید.</string>
+    <string name="ai_confirm_action">تأیید اقدام</string>
+    <string name="ai_action_pending">دستیار می‌خواهد: %1$s</string>
+    <string name="ai_action_done">انجام شد: %1$s</string>
+    <string name="ai_action_failed">انجام نشد: %1$s</string>
+    <string name="ai_you">شما</string>
+    <string name="ai_assistant">دستیار</string>
+
+    <!-- Intents -->
+    <string name="intent_open_app">باز کردن %1$s</string>
+    <string name="intent_search_app">جستجوی برنامه‌ها برای «%1$s»</string>
+    <string name="intent_open_settings">باز کردن تنظیمات %1$s</string>
+    <string name="intent_show_apps">نمایش برنامه‌های %1$s</string>
+    <string name="intent_create_timer">شروع تایمر برای %1$s</string>
+    <string name="intent_search_web">جستجوی «%1$s» در وب</string>
+    <string name="intent_no_app_found">هیچ برنامه نصب‌شده‌ای با «%1$s» مطابقت ندارد.</string>
+    <string name="intent_no_handler">هیچ برنامه‌ای روی این دستگاه نمی‌تواند این کار را انجام دهد.</string>
+
+    <!-- AI Setup -->
+    <string name="setup_title">راه‌اندازی AI</string>
+    <string name="setup_status">وضعیت اتصال Gemini</string>
+    <string name="setup_status_connected">متصل</string>
+    <string name="setup_status_not_configured">تنظیم نشده</string>
+    <string name="setup_status_unverified">کلید ذخیره شد — هنوز تست نشده</string>
+    <string name="setup_status_error">مشکل در اتصال</string>
+    <string name="setup_last_checked">آخرین بررسی: %1$s</string>
+    <string name="setup_never">هرگز</string>
+    <string name="setup_config">پیکربندی API</string>
+    <string name="setup_key_label">کلید API جمینای</string>
+    <string name="setup_key_hint">کلید را اینجا بچسبانید (AIza…)</string>
+    <string name="setup_key_stored">یک کلید به صورت امن روی این دستگاه ذخیره شده است.</string>
+    <string name="setup_key_none">هیچ کلیدی روی این دستگاه ذخیره نشده است.</string>
+    <string name="setup_key_never_shown">برای امنیت شما، کلید ذخیره‌شده دیگر هرگز نمایش داده نمی‌شود — حتی در همین صفحه.</string>
+    <string name="setup_model">مدل</string>
+    <string name="setup_base_url">آدرس API (پیشرفته)</string>
+    <string name="setup_base_url_desc">برای اتصال مستقیم به گوگل، مقدار پیش‌فرض را نگه دارید. برای نسخه Production آدرس پروکسی خودتان را بگذارید تا کلید اصلاً روی دستگاه نباشد.</string>
+    <string name="setup_save_key">ذخیره کلید</string>
+    <string name="setup_test">تست اتصال</string>
+    <string name="setup_testing">در حال تست…</string>
+    <string name="setup_change">تغییر کلید</string>
+    <string name="setup_delete">حذف کلید</string>
+    <string name="setup_delete_confirm">کلید Gemini از این دستگاه حذف شود؟ تا وارد کردن کلید جدید، دستیار کار نخواهد کرد.</string>
+    <string name="setup_deleted">کلید از این دستگاه حذف شد.</string>
+    <string name="setup_saved">کلید در حافظه رمزنگاری‌شده ذخیره شد.</string>
+    <string name="setup_security">اطلاعات امنیتی</string>
+    <string name="setup_security_body">• کلید با EncryptedSharedPreferences اندروید ذخیره می‌شود (AES-256-GCM با Keystore سخت‌افزاری).\n• هرگز داخل سورس‌کد، APK، لاگ یا Git نوشته نمی‌شود.\n• از پشتیبان‌گیری ابری و انتقال به دستگاه دیگر مستثنا شده است.\n• فقط از طریق HTTPS به آدرس بالا ارسال می‌شود.\n• با حذف نصب برنامه، کلید هم از بین می‌رود.</string>
+    <string name="setup_usage">اطلاعات مصرف</string>
+    <string name="setup_usage_body">هر پیام از سهمیه Gemini خودتان مصرف می‌کند. کلیدهای رایگان محدودیت دقیقه‌ای و روزانه دارند. مصرف و سهمیه را در Google AI Studio → «Get API key» → «Usage» یا در Google Cloud Console بررسی کنید.</string>
+    <string name="setup_open_ai_studio">باز کردن Google AI Studio</string>
+    <string name="setup_open_docs">مستندات رسمی Gemini API</string>
+    <string name="setup_open_usage">بررسی مصرف و صورتحساب</string>
+    <string name="setup_tutorial">آموزش</string>
+    <string name="setup_tutorial_step1">۱. وارد Google AI Studio شوید و با حساب گوگل خود وارد شوید.</string>
+    <string name="setup_tutorial_step2">۲. روی «Get API key» و سپس «Create API key» بزنید و کلید را کپی کنید.</string>
+    <string name="setup_tutorial_step3">۳. به همین صفحه برگردید، کلید را در کادر بالا بچسبانید و «ذخیره کلید» را بزنید.</string>
+    <string name="setup_tutorial_step4">۴. روی «تست اتصال» بزنید. نشان سبز «متصل» یعنی همه‌چیز درست است.</string>
+    <string name="setup_tutorial_step5">۵. دستیار هوشمند را باز کنید و بگویید «تنظیمات وای‌فای رو باز کن».</string>
+    <string name="setup_tutorial_step6">۶. برای تعویض کلید: اینجا حذفش کنید، در AI Studio کلید تازه بسازید و دوباره ذخیره کنید.</string>
+    <string name="setup_empty_key_error">ابتدا کلید را وارد کنید.</string>
+    <string name="setup_key_format_warning">این رشته شبیه کلید گوگل نیست (معمولاً با «AIza» شروع می‌شود). با این حال ذخیره شد.</string>
+
+    <!-- Errors -->
+    <string name="err_no_key">کلیدی تنظیم نشده است. در بخش راه‌اندازی AI یک کلید وارد کنید.</string>
+    <string name="err_invalid_key">کلید API نامعتبر اعلام شد. در Google AI Studio کلید جدید بسازید و دوباره ذخیره کنید.</string>
+    <string name="err_permission">این کلید اجازه فراخوانی Gemini API را ندارد. بررسی کنید Generative Language API برای پروژه کلید فعال باشد و محدودیت IP/Referrer مانع نشود.</string>
+    <string name="err_quota">محدودیت نرخ یا سهمیه تمام شده است (خطای ۴۲۹). یک دقیقه صبر کنید یا سهمیه را در Google Cloud Console افزایش دهید.</string>
+    <string name="err_model">مدل انتخاب‌شده برای این کلید در دسترس نیست. مدل دیگری در راه‌اندازی AI انتخاب کنید.</string>
+    <string name="err_server">گوگل خطای موقت سرور برگرداند (کد %1$d). لطفاً کمی بعد دوباره تلاش کنید.</string>
+    <string name="err_network">خطای شبکه: دسترسی به سرور Gemini ممکن نشد. اینترنت یا آدرس پروکسی را بررسی کنید.</string>
+    <string name="err_timeout">زمان درخواست تمام شد. اتصال را بررسی و دوباره تلاش کنید.</string>
+    <string name="err_safety">پاسخ توسط فیلترهای ایمنی Gemini مسدود شد. درخواست را طور دیگری بیان کنید.</string>
+    <string name="err_parse">پاسخ دریافتی از Gemini قابل تفسیر نبود.</string>
+    <string name="err_unknown">خطای پیش‌بینی‌نشده: %1$s</string>
+
+    <!-- Settings targets -->
+    <string name="settings_target_wifi">وای‌فای</string>
+    <string name="settings_target_bluetooth">بلوتوث</string>
+    <string name="settings_target_display">نمایشگر</string>
+    <string name="settings_target_sound">صدا</string>
+    <string name="settings_target_battery">باتری</string>
+    <string name="settings_target_apps">برنامه‌ها</string>
+    <string name="settings_target_location">موقعیت مکانی</string>
+    <string name="settings_target_storage">حافظه</string>
+    <string name="settings_target_security">امنیت</string>
+    <string name="settings_target_network">شبکه و اینترنت</string>
+    <string name="settings_target_date">تاریخ و ساعت</string>
+    <string name="settings_target_language">زبان‌ها</string>
+    <string name="settings_target_accessibility">دسترس‌پذیری</string>
+    <string name="settings_target_home">لانچر پیش‌فرض</string>
+    <string name="settings_target_notifications">اعلان‌ها</string>
+    <string name="settings_target_main">تنظیمات سیستم</string>
+</resources>

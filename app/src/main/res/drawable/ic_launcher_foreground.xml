@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Rounded "spark" mark: an AI star over a launcher grid -->
+    <group android:translateX="0" android:translateY="0">
+        <!-- grid dots -->
+        <path
+            android:fillColor="#7DD3FC"
+            android:pathData="M34,66 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
+        <path
+            android:fillColor="#7DD3FC"
+            android:pathData="M54,66 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
+        <path
+            android:fillColor="#7DD3FC"
+            android:pathData="M74,66 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
+        <path
+            android:fillColor="#38BDF8"
+            android:pathData="M34,78 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
+        <path
+            android:fillColor="#38BDF8"
+            android:pathData="M54,78 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
+        <path
+            android:fillColor="#38BDF8"
+            android:pathData="M74,78 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
+
+        <!-- AI spark -->
+        <path
+            android:fillColor="#E0F2FE"
+            android:pathData="M54,20 L59.5,38.5 L78,44 L59.5,49.5 L54,68 L48.5,49.5 L30,44 L48.5,38.5 Z" />
+        <path
+            android:fillColor="#FDE68A"
+            android:pathData="M78,22 L80.5,29.5 L88,32 L80.5,34.5 L78,42 L75.5,34.5 L68,32 L75.5,29.5 Z" />
+    </group>
+</vector>
