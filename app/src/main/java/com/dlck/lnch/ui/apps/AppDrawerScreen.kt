@@ -1,20 +1,28 @@
 package com.dlck.lnch.ui.apps
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -41,9 +49,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlck.lnch.R
@@ -54,6 +68,8 @@ import com.dlck.lnch.ui.LauncherViewModel
 import com.dlck.lnch.ui.components.AppTile
 import com.dlck.lnch.ui.components.AuroraBackground
 import com.dlck.lnch.ui.components.EmptyState
+import com.dlck.lnch.utils.AlphabetIndex
+import kotlinx.coroutines.launch
 
 @Composable
 fun AppDrawerScreen(
@@ -69,6 +85,9 @@ fun AppDrawerScreen(
     val pinned by viewModel.pinnedKeys.collectAsStateWithLifecycle()
 
     var query by rememberSaveable { mutableStateOf(initialQuery.orEmpty()) }
+    val gridState = rememberLazyGridState()
+    val scope = rememberCoroutineScope()
+    val haptics = LocalHapticFeedback.current
     var category by remember { mutableStateOf(initialCategory) }
     val keyboard = LocalSoftwareKeyboardController.current
 
@@ -189,32 +208,139 @@ fun AppDrawerScreen(
                 )
             }
         } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(settings.drawerColumns),
+            // The A-Z rail only makes sense while the grid is alphabetical and unfiltered.
+            val sections = remember(apps, settings.drawerSort) {
+                if (settings.drawerSort == DrawerSort.NAME_ASC ||
+                    settings.drawerSort == DrawerSort.NAME_DESC
+                ) {
+                    AlphabetIndex.build(apps.map { it.label })
+                } else {
+                    emptyList()
+                }
+            }
+            val showRail = sections.size >= 4
+
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .navigationBarsPadding(),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                items(apps, key = { it.key }) { app ->
-                    AppTile(
-                        app = app,
-                        cache = viewModel.iconCache,
-                        iconSize = settings.iconSizeDp.dp,
-                        showLabel = settings.showLabels,
-                        onClick = {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(settings.drawerColumns),
+                    state = gridState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = 12.dp,
+                        end = if (showRail) 30.dp else 12.dp,
+                        top = 8.dp,
+                        bottom = 8.dp,
+                    ),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    items(apps, key = { it.key }) { app ->
+                        AppTile(
+                            app = app,
+                            cache = viewModel.iconCache,
+                            iconSize = settings.iconSizeDp.dp,
+                            showLabel = settings.showLabels,
+                            onClick = {
+                                keyboard?.hide()
+                                viewModel.launch(app)
+                            },
+                            onLongClick = { onAppLongPress(app) },
+                            labelColor = MaterialTheme.colorScheme.onBackground,
+                        )
+                    }
+                }
+
+                if (showRail) {
+                    FastScrollRail(
+                        sections = sections,
+                        modifier = Modifier.align(Alignment.CenterEnd),
+                        onPick = { section ->
                             keyboard?.hide()
-                            viewModel.launch(app)
+                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            scope.launch { gridState.scrollToItem(section.index) }
                         },
-                        onLongClick = { onAppLongPress(app) },
-                        labelColor = MaterialTheme.colorScheme.onBackground,
                     )
                 }
             }
         }
     }
+    }
+}
+
+/**
+ * Vertical A-Z rail on the drawer edge: tap or drag a letter to jump the grid to it.
+ * Letters are laid out proportionally, so the touch position maps straight to a section.
+ */
+@Composable
+private fun FastScrollRail(
+    sections: List<AlphabetIndex.Section>,
+    onPick: (AlphabetIndex.Section) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var active by remember { mutableStateOf(-1) }
+
+    fun pick(y: Float, heightPx: Int) {
+        val index = AlphabetIndex.indexForOffset(y, heightPx, sections.size)
+        if (index >= 0 && index != active) {
+            active = index
+            onPick(sections[index])
+        }
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxHeight()
+            .width(28.dp)
+            .padding(vertical = 12.dp)
+            .background(
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.35f),
+                shape = RoundedCornerShape(14.dp),
+            )
+            .pointerInput(sections) {
+                detectTapGestures(
+                    onPress = { offset -> pick(offset.y, size.height) },
+                )
+            }
+            .pointerInput(sections) {
+                detectVerticalDragGestures(
+                    onDragEnd = { active = -1 },
+                    onDragCancel = { active = -1 },
+                ) { change, _ -> pick(change.position.y, size.height) }
+            },
+        verticalArrangement = Arrangement.SpaceEvenly,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        sections.forEachIndexed { index, section ->
+            val selected = index == active
+            Box(
+                modifier = Modifier.size(width = 22.dp, height = 14.dp)
+                    .background(
+                        color = if (selected) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+                        } else {
+                            Color.Transparent
+                        },
+                        shape = CircleShape,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = section.letter,
+                    style = MaterialTheme.typography.labelSmall,
+                    textAlign = TextAlign.Center,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+            }
+        }
     }
 }
 

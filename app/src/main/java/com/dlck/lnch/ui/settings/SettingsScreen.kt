@@ -19,10 +19,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -33,21 +37,28 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlck.lnch.R
+import com.dlck.lnch.data.apps.AppInfo
+import com.dlck.lnch.data.apps.IconCache
 import com.dlck.lnch.data.prefs.AccentColor
 import com.dlck.lnch.data.prefs.AppLanguage
 import com.dlck.lnch.data.prefs.ThemeMode
 import com.dlck.lnch.ui.LauncherViewModel
+import com.dlck.lnch.ui.components.AppIconImage
 import com.dlck.lnch.ui.components.ScreenHeader
 import com.dlck.lnch.ui.components.SectionTitle
 
@@ -60,6 +71,8 @@ fun SettingsScreen(
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val usageGranted by viewModel.usageAccessGranted.collectAsStateWithLifecycle()
+    val hiddenApps by viewModel.hiddenApps.collectAsStateWithLifecycle()
+    var showHiddenManager by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val isDefaultHome = remember(context) { isDefaultLauncher(context) }
 
@@ -293,6 +306,25 @@ fun SettingsScreen(
                 )
             }
             item {
+                SwitchRow(
+                    title = stringResource(R.string.settings_show_suggestions),
+                    subtitle = stringResource(R.string.settings_show_suggestions_desc),
+                    checked = settings.showSuggestions,
+                    onCheckedChange = viewModel::setShowSuggestions,
+                )
+            }
+            item {
+                NavRow(
+                    title = stringResource(R.string.settings_hidden_apps),
+                    subtitle = pluralStringResource(
+                        R.plurals.settings_hidden_apps_count,
+                        hiddenApps.size,
+                        hiddenApps.size,
+                    ),
+                    onClick = { showHiddenManager = true },
+                )
+            }
+            item {
                 SliderRow(
                     title = stringResource(R.string.home_favorites),
                     value = settings.favoritesRows.toFloat(),
@@ -344,6 +376,65 @@ fun SettingsScreen(
             }
         }
     }
+
+    if (showHiddenManager) {
+        HiddenAppsDialog(
+            apps = hiddenApps,
+            cache = viewModel.iconCache,
+            onUnhide = viewModel::toggleHidden,
+            onDismiss = { showHiddenManager = false },
+        )
+    }
+}
+
+/** Lets the user bring hidden apps back — otherwise hiding would be a one-way door. */
+@Composable
+private fun HiddenAppsDialog(
+    apps: List<AppInfo>,
+    cache: IconCache,
+    onUnhide: (AppInfo) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
+        },
+        title = { Text(stringResource(R.string.settings_hidden_apps)) },
+        text = {
+            if (apps.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.settings_hidden_apps_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            } else {
+                LazyColumn(modifier = Modifier.height(320.dp)) {
+                    items(apps, key = { it.key }) { app ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onUnhide(app) }
+                                .padding(vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        ) {
+                            AppIconImage(app = app, cache = cache, size = 32.dp)
+                            Text(
+                                text = app.label,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Icon(
+                                imageVector = Icons.Filled.Visibility,
+                                contentDescription = stringResource(R.string.menu_unhide),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+    )
 }
 
 @Composable

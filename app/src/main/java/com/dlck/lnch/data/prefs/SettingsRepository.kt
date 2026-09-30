@@ -40,6 +40,7 @@ class SettingsRepository(private val context: Context) {
         val showDate = booleanPreferencesKey("show_date")
         val showSearchBar = booleanPreferencesKey("show_search")
         val showRecent = booleanPreferencesKey("show_recent")
+        val showSuggestions = booleanPreferencesKey("show_suggestions")
         val clock24 = booleanPreferencesKey("clock_24h")
         val persianDate = booleanPreferencesKey("persian_date")
         val favoritesRows = intPreferencesKey("favorites_rows")
@@ -69,6 +70,7 @@ class SettingsRepository(private val context: Context) {
             showDate = this[Keys.showDate] ?: defaults.showDate,
             showSearchBar = this[Keys.showSearchBar] ?: defaults.showSearchBar,
             showRecent = this[Keys.showRecent] ?: defaults.showRecent,
+            showSuggestions = this[Keys.showSuggestions] ?: defaults.showSuggestions,
             use24HourClock = this[Keys.clock24] ?: defaults.use24HourClock,
             persianDate = this[Keys.persianDate] ?: defaults.persianDate,
             favoritesRows = this[Keys.favoritesRows] ?: defaults.favoritesRows,
@@ -97,6 +99,7 @@ class SettingsRepository(private val context: Context) {
     suspend fun setShowDate(value: Boolean) = edit { it[Keys.showDate] = value }
     suspend fun setShowSearchBar(value: Boolean) = edit { it[Keys.showSearchBar] = value }
     suspend fun setShowRecent(value: Boolean) = edit { it[Keys.showRecent] = value }
+    suspend fun setShowSuggestions(value: Boolean) = edit { it[Keys.showSuggestions] = value }
     suspend fun setClock24(value: Boolean) = edit { it[Keys.clock24] = value }
     suspend fun setPersianDate(value: Boolean) = edit { it[Keys.persianDate] = value }
     suspend fun setFavoritesRows(value: Int) = edit { it[Keys.favoritesRows] = value.coerceIn(1, 3) }

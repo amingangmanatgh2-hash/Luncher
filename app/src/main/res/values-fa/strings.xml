@@ -214,4 +214,15 @@
     <string name="settings_target_home">لانچر پیش‌فرض</string>
     <string name="settings_target_notifications">اعلان‌ها</string>
     <string name="settings_target_main">تنظیمات سیستم</string>
+    <string name="home_suggestions">پیشنهاد برای این ساعت</string>
+    <string name="search_calc_result">ماشین‌حساب</string>
+    <string name="menu_shortcuts">میان‌برهای برنامه</string>
+    <string name="settings_show_suggestions">پیشنهادهای هوشمند</string>
+    <string name="settings_show_suggestions_desc">بر پایهٔ الگوی استفادهٔ خودت، کاملاً روی همین گوشی</string>
+    <string name="settings_hidden_apps">برنامه‌های پنهان</string>
+    <string name="settings_hidden_apps_empty">الان هیچ برنامه‌ای پنهان نیست.</string>
+    <plurals name="settings_hidden_apps_count">
+        <item quantity="one">%d برنامهٔ پنهان</item>
+        <item quantity="other">%d برنامهٔ پنهان</item>
+    </plurals>
 </resources>

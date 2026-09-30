@@ -217,4 +217,15 @@
     <string name="settings_target_home">Default home app</string>
     <string name="settings_target_notifications">Notifications</string>
     <string name="settings_target_main">System settings</string>
+    <string name="home_suggestions">Suggested for now</string>
+    <string name="search_calc_result">Calculator</string>
+    <string name="menu_shortcuts">App shortcuts</string>
+    <string name="settings_show_suggestions">Smart suggestions</string>
+    <string name="settings_show_suggestions_desc">Predicts apps from your own usage, on-device</string>
+    <string name="settings_hidden_apps">Hidden apps</string>
+    <string name="settings_hidden_apps_empty">Nothing is hidden right now.</string>
+    <plurals name="settings_hidden_apps_count">
+        <item quantity="one">%d hidden app</item>
+        <item quantity="other">%d hidden apps</item>
+    </plurals>
 </resources>

@@ -78,6 +78,7 @@ fun HomeScreen(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val favorites by viewModel.favorites.collectAsStateWithLifecycle()
     val recents by viewModel.recentApps.collectAsStateWithLifecycle()
+    val suggestions by viewModel.suggestedApps.collectAsStateWithLifecycle()
 
     val contentColor = Color.White
     val dragTotal = remember { mutableFloatStateOf(0f) }
@@ -139,6 +140,49 @@ fun HomeScreen(
             }
 
             Spacer(Modifier.weight(1f))
+
+            AnimatedVisibility(
+                visible = settings.showSuggestions && suggestions.isNotEmpty(),
+                enter = fadeIn(),
+                exit = fadeOut(),
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.padding(start = 6.dp, bottom = 6.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.AutoAwesome,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(13.dp),
+                        )
+                        Text(
+                            text = stringResource(R.string.home_suggestions),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = contentColor.copy(alpha = 0.78f),
+                        )
+                    }
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        contentPadding = PaddingValues(horizontal = 2.dp),
+                    ) {
+                        items(suggestions, key = { "sg-" + it.key }) { app ->
+                            AppTile(
+                                app = app,
+                                cache = viewModel.iconCache,
+                                iconSize = (settings.iconSizeDp - 8).dp,
+                                showLabel = false,
+                                onClick = { viewModel.launch(app) },
+                                onLongClick = { onAppLongPress(app) },
+                                labelColor = contentColor,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                }
+            }
 
             AnimatedVisibility(
                 visible = settings.showRecent && recents.isNotEmpty(),

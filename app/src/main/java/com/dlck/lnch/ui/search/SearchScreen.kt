@@ -18,9 +18,13 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,7 +40,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -47,6 +53,7 @@ import com.dlck.lnch.data.apps.AppInfo
 import com.dlck.lnch.ui.LauncherViewModel
 import com.dlck.lnch.ui.components.AuroraBackground
 import com.dlck.lnch.ui.components.AppIconImage
+import com.dlck.lnch.utils.Calculator
 
 /**
  * Quick search: instant local app results plus two escape hatches — ask the AI, or search the web.
@@ -69,6 +76,9 @@ fun SearchScreen(
     val results = remember(query, apps) {
         if (query.isBlank()) emptyList() else AppMatcher.rank(query, apps).take(20)
     }
+    // Typing "12*7+3" in the search bar answers itself, fully offline.
+    val mathResult = remember(query) { Calculator.evaluate(query)?.let(Calculator::format) }
+    val clipboard = LocalClipboardManager.current
 
     LaunchedEffect(Unit) {
         runCatching { focusRequester.requestFocus() }
@@ -122,6 +132,53 @@ fun SearchScreen(
                 .fillMaxSize()
                 .navigationBarsPadding(),
         ) {
+            if (mathResult != null) {
+                item("calc") {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                .copy(alpha = 0.6f),
+                        ),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    clipboard.setText(AnnotatedString(mathResult))
+                                }
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Calculate,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.search_calc_result),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    text = "= " + mathResult,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Filled.ContentCopy,
+                                contentDescription = stringResource(R.string.action_copy),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+
             items(results, key = { it.key }) { app ->
                 Row(
                     modifier = Modifier

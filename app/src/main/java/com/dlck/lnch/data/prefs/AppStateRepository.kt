@@ -23,7 +23,18 @@ private val Context.appStateDataStore: DataStore<Preferences> by preferencesData
 data class UsageStat(
     val launchCount: Int = 0,
     val lastLaunchedAt: Long = 0L,
-)
+    /**
+     * 24 buckets, one per hour of the day, counting how often this app was opened then.
+     * Defaulted so transcripts written by older builds keep deserialising.
+     */
+    val hours: List<Int> = emptyList(),
+) {
+    fun withLaunchAt(hour: Int): UsageStat {
+        val histogram = (if (hours.size == 24) hours else List(24) { 0 }).toMutableList()
+        histogram[((hour % 24) + 24) % 24]++
+        return copy(hours = histogram.toList())
+    }
+}
 
 /**
  * Favourites, pins, hidden apps and DLCK LNCH's own launch history.
@@ -94,14 +105,20 @@ class AppStateRepository(private val context: Context) {
         prefs[Keys.hidden] = json.encodeToString(current.toList())
     }
 
-    suspend fun recordLaunch(key: String, now: Long = System.currentTimeMillis()) =
+    suspend fun recordLaunch(
+        key: String,
+        now: Long = System.currentTimeMillis(),
+        hour: Int = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY),
+    ) =
         context.appStateDataStore.edit { prefs ->
             val usage = prefs[Keys.usage].decodeUsage().toMutableMap()
             val existing = usage[key] ?: UsageStat()
-            usage[key] = existing.copy(
-                launchCount = existing.launchCount + 1,
-                lastLaunchedAt = now,
-            )
+            usage[key] = existing
+                .copy(
+                    launchCount = existing.launchCount + 1,
+                    lastLaunchedAt = now,
+                )
+                .withLaunchAt(hour)
             // Keep the map small: only the 80 most recently used entries survive.
             val trimmed = usage.entries
                 .sortedByDescending { it.value.lastLaunchedAt }

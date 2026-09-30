@@ -42,6 +42,7 @@ data class LauncherSettings(
     val showDate: Boolean = true,
     val showSearchBar: Boolean = true,
     val showRecent: Boolean = true,
+    val showSuggestions: Boolean = true,
     val use24HourClock: Boolean = true,
     val persianDate: Boolean = false,
     val favoritesRows: Int = 2,

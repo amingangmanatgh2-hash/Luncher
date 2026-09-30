@@ -6,6 +6,7 @@ import android.provider.Settings
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlck.lnch.data.apps.AppCategory
+import com.dlck.lnch.ai.predict.Suggester
 import com.dlck.lnch.data.apps.AppInfo
 import com.dlck.lnch.data.prefs.AccentColor
 import com.dlck.lnch.data.prefs.AppLanguage
@@ -87,6 +88,30 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     val hiddenKeys: StateFlow<Set<String>> = appState
         .map { it.hidden }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+
+    /** Hidden apps, for the "unhide" manager in Settings. */
+    val hiddenApps: StateFlow<List<AppInfo>> = combine(apps, appState) { list, state ->
+        list.filter { state.hidden.contains(it.key) }.sortedBy { it.label.lowercase() }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /**
+     * Time-aware predictions from the launcher's own history (see [Suggester]).
+     * Recomputed whenever the app list, the stats or the hour changes; never leaves the device.
+     */
+    val suggestedApps: StateFlow<List<AppInfo>> =
+        combine(visibleApps, appState, settings) { list, state, cfg ->
+            if (!cfg.showSuggestions) {
+                emptyList()
+            } else {
+                val byKey = list.associateBy { it.key }
+                val hour = java.util.Calendar.getInstance()
+                    .get(java.util.Calendar.HOUR_OF_DAY)
+                Suggester
+                    .rank(state.usage, hour, System.currentTimeMillis(), limit = 8)
+                    .mapNotNull { byKey[it] }
+            }
+        }.flowOn(Dispatchers.Default)
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     /**
      * Recently used apps: the launcher's own history first (always available, zero permissions),
@@ -255,6 +280,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun setShowDate(v: Boolean) = viewModelScope.launch { settingsRepository.setShowDate(v) }
     fun setShowSearchBar(v: Boolean) = viewModelScope.launch { settingsRepository.setShowSearchBar(v) }
     fun setShowRecent(v: Boolean) = viewModelScope.launch { settingsRepository.setShowRecent(v) }
+    fun setShowSuggestions(v: Boolean) =
+        viewModelScope.launch { settingsRepository.setShowSuggestions(v) }
     fun setClock24(v: Boolean) = viewModelScope.launch { settingsRepository.setClock24(v) }
     fun setPersianDate(v: Boolean) = viewModelScope.launch { settingsRepository.setPersianDate(v) }
     fun setFavoritesRows(v: Int) = viewModelScope.launch { settingsRepository.setFavoritesRows(v) }

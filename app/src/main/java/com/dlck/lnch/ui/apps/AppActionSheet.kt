@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.OpenInNew
@@ -19,11 +20,18 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -31,6 +39,9 @@ import com.dlck.lnch.R
 import com.dlck.lnch.data.apps.AppInfo
 import com.dlck.lnch.data.apps.IconCache
 import com.dlck.lnch.ui.components.AppIconImage
+import com.dlck.lnch.utils.AppShortcuts
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /** Long-press menu for an app. Uninstall always goes through the Android uninstall dialog. */
 @Composable
@@ -49,6 +60,18 @@ fun AppActionSheet(
     onUninstall: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val context = LocalContext.current
+
+    // App shortcuts are only readable once DLCK LNCH is the default home app; the list just stays
+    // empty otherwise, so the sheet works either way.
+    var shortcuts by remember(app.packageName) {
+        mutableStateOf<List<AppShortcuts.Entry>>(emptyList())
+    }
+    LaunchedEffect(app.packageName) {
+        shortcuts = withContext(Dispatchers.IO) {
+            AppShortcuts.load(context, app.packageName)
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -79,6 +102,31 @@ fun AppActionSheet(
             }
 
             SheetItem(Icons.Filled.OpenInNew, stringResource(R.string.menu_open), onOpen)
+
+            if (shortcuts.isNotEmpty()) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
+                )
+                Text(
+                    text = stringResource(R.string.menu_shortcuts),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
+                )
+                shortcuts.forEach { entry ->
+                    SheetItem(
+                        icon = Icons.Filled.Bolt,
+                        text = entry.label,
+                        onClick = {
+                            AppShortcuts.start(context, entry)
+                            onDismiss()
+                        },
+                    )
+                }
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
+                )
+            }
 
             SheetItem(
                 icon = if (isFavorite) Icons.Filled.Star else Icons.Filled.StarBorder,
