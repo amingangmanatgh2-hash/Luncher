@@ -8,7 +8,7 @@
 
 > **Persian below each English section.** / **زیر هر بخش انگلیسی، ترجمه فارسی آمده است.**
 >
-> 🎬 Prefer video? → [`docs/video/dlck-lnch-setup-tutorial.mp4`](video/dlck-lnch-setup-tutorial.mp4) (2 min 38 s, Persian narration).
+> 🎬 Prefer video? → [`docs/video/dlck-lnch-setup-tutorial.mp4`](video/dlck-lnch-setup-tutorial.mp4) (3 min 01 s, Persian narration).
 
 ---
 
@@ -41,10 +41,10 @@
 
 | | |
 |---|---|
-| **Debug build** | `dlck-lnch-1.0.0-debug.apk` — 18.6 MB, easiest to install, includes debug symbols |
-| **Release build** | `dlck-lnch-1.0.0-release.apk` — 2.4 MB, minified + resource-shrunk, signed with the CI debug key |
+| **Debug build** | `dlck-lnch-1.0.0-debug.apk` — 18.7 MB, easiest to install, includes debug symbols |
+| **Release build** | `dlck-lnch-1.0.0-release.apk` — 2.5 MB, minified + resource-shrunk, signed with the CI debug key |
 
-Both are attached to the GitHub Release: **<https://github.com/amingangmanatgh2-hash/Luncher/releases/tag/v1.0.0-build.4>**
+Both are attached to the GitHub Release: **<https://github.com/amingangmanatgh2-hash/Luncher/releases/tag/v1.0.0-build.7>**
 
 1. Download one APK onto the phone (Android 8.0 / API 26 or newer).
 2. Open it from the notification or from Files.
@@ -57,7 +57,7 @@ Both are attached to the GitHub Release: **<https://github.com/amingangmanatgh2-
 
 ### ۱. نصب فایل APK
 
-دو فایل روی Release گیت‌هاب موجود است: نسخه debug با حجم ۱۸٫۶ مگابایت و نسخه release با حجم ۲٫۴ مگابایت. یکی را دانلود کنید، اجازه نصب از منابع ناشناس را بدهید و Install را بزنید. حداقل نسخه اندروید مورد نیاز، اندروید ۸ است.
+دو فایل روی Release گیت‌هاب موجود است: نسخه debug با حجم ۱۸٫۷ مگابایت و نسخه release با حجم ۲٫۵ مگابایت. یکی را دانلود کنید، اجازه نصب از منابع ناشناس را بدهید و Install را بزنید. حداقل نسخه اندروید مورد نیاز، اندروید ۸ است.
 
 نسخه release با کلید debug مربوط به CI امضا شده است — یعنی نصب و اجرا می‌شود اما برای انتشار در گوگل‌پلی باید خودتان آن را با کلید خصوصی امضا کنید (بخش ۷).
 

@@ -161,8 +161,8 @@ Google AI Studio گرفته می‌شود. برای ساخت از سورس: JDK 
 
 | Asset | Size | Notes |
 |---|---|---|
-| `dlck-lnch-1.0.0-debug.apk` | 18.6 MB | debuggable, no shrinking — the easy choice |
-| `dlck-lnch-1.0.0-release.apk` | 2.4 MB | R8 minified + resource shrinking, signed with the CI **debug** key |
+| `dlck-lnch-1.0.0-debug.apk` | 18.7 MB | debuggable, no shrinking — the easy choice |
+| `dlck-lnch-1.0.0-release.apk` | 2.5 MB | R8 minified + resource shrinking, signed with the CI **debug** key |
 
 1. Download the APK to the phone.
 2. Open it → Android asks to allow installs from this source → **Allow** → **Install**.
