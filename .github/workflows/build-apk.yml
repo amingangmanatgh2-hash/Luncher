@@ -109,17 +109,57 @@ jobs:
         if: github.event_name == 'workflow_dispatch' || github.ref_name == 'arena/01a0ed54-luncher'
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.collect.outputs.version }}
+          RUN_NUMBER: ${{ github.run_number }}
+          COMMIT_SHA: ${{ github.sha }}
         run: |
-          TAG="v${{ steps.collect.outputs.version }}-build.${{ github.run_number }}"
-          gh release create "$TAG" dist/*.apk \
-            --title "DLCK LNCH ${{ steps.collect.outputs.version }} (build ${{ github.run_number }})" \
-            --notes "Automated build of \`${{ github.sha }}\`.
+          set -euo pipefail
+          TAG="v${VERSION}-build.${RUN_NUMBER}"
 
-          **Install:** download \`dlck-lnch-*-debug.apk\`, allow \"install unknown apps\", then open it.
-          **Set as home:** Android Settings → Apps → Default apps → Home app → DLCK LNCH.
+          # Note: no heredoc — an indented EOF inside a YAML block scalar would never
+          # terminate it. printf keeps the notes readable and safely quoted.
+          printf '%s\n' \
+            "Automated build of \`${COMMIT_SHA}\`." \
+            "" \
+            "**Install:** download \`dlck-lnch-${VERSION}-debug.apk\`, allow \"install unknown apps\", then open it." \
+            "**Set as home:** Android Settings -> Apps -> Default apps -> Home app -> DLCK LNCH." \
+            "" \
+            "No API key is embedded in this APK. Add your own Gemini key inside the app under Settings -> AI Setup." \
+            > /tmp/notes.md
 
-          No API key is embedded in this APK. Add your own Gemini key inside the app under Settings → AI Setup." \
-            --target "${{ github.sha }}" || echo "Release step skipped (tag may already exist)."
+          # 1. Create the release as a draft first, so a failed upload never leaves a
+          #    published release with missing assets.
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --draft \
+              --title "DLCK LNCH ${VERSION} (build ${RUN_NUMBER})" \
+              --notes-file /tmp/notes.md \
+              --target "$COMMIT_SHA"
+          fi
+
+          # 2. Upload every APK, retrying transient GitHub upload failures.
+          UPLOADED=0
+          for attempt in 1 2 3; do
+            if gh release upload "$TAG" dist/*.apk --clobber; then
+              UPLOADED=1
+              break
+            fi
+            echo "::warning::asset upload attempt ${attempt} failed, retrying in 15s"
+            sleep 15
+          done
+          if [ "$UPLOADED" -ne 1 ]; then
+            echo "::error::could not upload APKs to release $TAG"
+            exit 1
+          fi
+
+          # 3. Only now make it visible, and verify the assets really are attached.
+          gh release edit "$TAG" --draft=false --latest
+          ASSETS=$(gh release view "$TAG" --json assets --jq '[.assets[].name] | join(", ")')
+          echo "Release $TAG published with: $ASSETS"
+          if [ -z "$ASSETS" ]; then
+            echo "::error::release $TAG has no assets"
+            exit 1
+          fi
 
       - name: Commit generated Gradle wrapper back to the branch
         if: success()
