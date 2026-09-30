@@ -36,8 +36,16 @@ data class UsageStat(
     }
 }
 
+/** A home-screen folder: a named bundle of app keys. */
+@Serializable
+data class FolderData(
+    val id: String,
+    val name: String,
+    val items: List<String> = emptyList(),
+)
+
 /**
- * Favourites, pins, hidden apps and DLCK LNCH's own launch history.
+ * Favourites, pins, hidden apps, folders and DLCK LNCH's own launch history.
  *
  * The launch history is recorded locally by the launcher itself, which is why "Recently used"
  * works with **zero** extra permissions. The optional PACKAGE_USAGE_STATS permission only makes
@@ -52,6 +60,7 @@ class AppStateRepository(private val context: Context) {
         val pinned = stringPreferencesKey("pinned")
         val hidden = stringPreferencesKey("hidden")
         val usage = stringPreferencesKey("usage")
+        val folders = stringPreferencesKey("folders")
     }
 
     data class AppState(
@@ -59,6 +68,7 @@ class AppStateRepository(private val context: Context) {
         val pinned: Set<String> = emptySet(),
         val hidden: Set<String> = emptySet(),
         val usage: Map<String, UsageStat> = emptyMap(),
+        val folders: List<FolderData> = emptyList(),
     )
 
     val state: Flow<AppState> = context.appStateDataStore.data
@@ -71,6 +81,7 @@ class AppStateRepository(private val context: Context) {
                 pinned = prefs[Keys.pinned].decodeList().toSet(),
                 hidden = prefs[Keys.hidden].decodeList().toSet(),
                 usage = prefs[Keys.usage].decodeUsage(),
+                folders = prefs[Keys.folders].decodeFolders(),
             )
         }
 
@@ -83,6 +94,22 @@ class AppStateRepository(private val context: Context) {
         else runCatching { json.decodeFromString<Map<String, UsageStat>>(this) }
             .getOrDefault(emptyMap())
 
+    private fun String?.decodeFolders(): List<FolderData> =
+        if (this.isNullOrBlank()) emptyList()
+        else runCatching { json.decodeFromString<List<FolderData>>(this) }
+            .getOrDefault(emptyList())
+
+    /** Read-modify-write helper shared by every folder mutation (see [com.dlck.lnch.utils.FolderOps]). */
+    suspend fun updateFolders(transform: (List<FolderData>) -> List<FolderData>) =
+        context.appStateDataStore.edit { prefs ->
+            val current = prefs[Keys.folders].decodeFolders()
+            prefs[Keys.folders] = json.encodeToString(transform(current))
+        }
+
+    suspend fun setFolders(folders: List<FolderData>) = context.appStateDataStore.edit { prefs ->
+        prefs[Keys.folders] = json.encodeToString(folders)
+    }
+
     suspend fun toggleFavorite(key: String) = context.appStateDataStore.edit { prefs ->
         val current = prefs[Keys.favorites].decodeList().toMutableList()
         if (!current.remove(key)) current.add(key)
@@ -91,6 +118,18 @@ class AppStateRepository(private val context: Context) {
 
     suspend fun setFavorites(keys: List<String>) = context.appStateDataStore.edit { prefs ->
         prefs[Keys.favorites] = json.encodeToString(keys.toList())
+    }
+
+    suspend fun setPinned(keys: Set<String>) = context.appStateDataStore.edit { prefs ->
+        prefs[Keys.pinned] = json.encodeToString(keys.toList())
+    }
+
+    suspend fun setHidden(keys: Set<String>) = context.appStateDataStore.edit { prefs ->
+        prefs[Keys.hidden] = json.encodeToString(keys.toList())
+    }
+
+    suspend fun setUsage(usage: Map<String, UsageStat>) = context.appStateDataStore.edit { prefs ->
+        prefs[Keys.usage] = json.encodeToString(usage)
     }
 
     suspend fun togglePinned(key: String) = context.appStateDataStore.edit { prefs ->

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.OpenInNew
@@ -58,6 +59,8 @@ fun AppActionSheet(
     onToggleHidden: () -> Unit,
     onAppInfo: () -> Unit,
     onUninstall: () -> Unit,
+    onMoveToFolder: () -> Unit,
+    folderName: String?,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
@@ -146,6 +149,13 @@ fun AppActionSheet(
                 icon = if (isHidden) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
                 text = stringResource(if (isHidden) R.string.menu_unhide else R.string.menu_hide),
                 onClick = onToggleHidden,
+            )
+
+            SheetItem(
+                icon = Icons.Filled.Folder,
+                text = folderName?.let { stringResource(R.string.menu_in_folder, it) }
+                    ?: stringResource(R.string.folder_move),
+                onClick = onMoveToFolder,
             )
 
             SheetItem(Icons.Filled.Info, stringResource(R.string.menu_app_info), onAppInfo)

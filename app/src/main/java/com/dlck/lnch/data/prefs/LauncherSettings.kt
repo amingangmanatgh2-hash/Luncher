@@ -14,6 +14,20 @@ enum class AppLanguage(val tag: String?) {
 /** Ordering applied to the app drawer list. */
 enum class DrawerSort { NAME_ASC, NAME_DESC, MOST_USED, NEWEST }
 
+/**
+ * What a home-screen gesture does. Every entry maps to something the launcher can perform with a
+ * plain, safe API — there is deliberately no "run command" style action.
+ */
+enum class GestureAction {
+    NONE,
+    APP_DRAWER,
+    SEARCH,
+    ASSISTANT,
+    SETTINGS,
+    WALLPAPER,
+    AI_SETUP,
+}
+
 enum class AccentColor(val seed: Color) {
     CYAN(Color(0xFF22D3EE)),
     VIOLET(Color(0xFF8B5CF6)),
@@ -48,6 +62,17 @@ data class LauncherSettings(
     val favoritesRows: Int = 2,
 
     val geminiModel: String = "gemini-2.5-flash",
+
+    /** Package name of the installed icon pack to theme icons with; blank = stock icons. */
+    val iconPack: String = "",
+    /** Unread-notification dots on icons (needs the notification-listener permission). */
+    val showBadges: Boolean = true,
+    /** Home-screen widgets row. */
+    val showWidgets: Boolean = true,
+
+    val swipeUpAction: GestureAction = GestureAction.APP_DRAWER,
+    val swipeDownAction: GestureAction = GestureAction.SEARCH,
+    val doubleTapAction: GestureAction = GestureAction.ASSISTANT,
 ) {
     val drawerColumns: Int get() = gridColumns.coerceIn(3, 6)
     val favoritesCapacity: Int get() = drawerColumns * favoritesRows.coerceIn(1, 3)

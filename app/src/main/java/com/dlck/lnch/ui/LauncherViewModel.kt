@@ -10,12 +10,19 @@ import com.dlck.lnch.ai.predict.Suggester
 import com.dlck.lnch.data.apps.AppInfo
 import com.dlck.lnch.data.prefs.AccentColor
 import com.dlck.lnch.data.prefs.AppLanguage
+import com.dlck.lnch.data.apps.IconPackRepository
 import com.dlck.lnch.data.prefs.AppStateRepository
 import com.dlck.lnch.data.prefs.DrawerSort
+import com.dlck.lnch.data.prefs.FolderData
+import com.dlck.lnch.data.prefs.GestureAction
 import com.dlck.lnch.data.prefs.LauncherSettings
 import com.dlck.lnch.data.prefs.ThemeMode
+import com.dlck.lnch.data.widgets.WidgetSpec
 import com.dlck.lnch.graph
+import com.dlck.lnch.notifications.NotificationBadges
+import com.dlck.lnch.utils.FolderOps
 import com.dlck.lnch.utils.UsageAccess
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -42,6 +49,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val settingsRepository = graph.settingsRepository
     private val appStateRepository = graph.appStateRepository
     private val appRepository = graph.appRepository
+    private val widgetRepository = graph.widgetRepository
+    private val backupManager = graph.backupManager
 
     val iconCache = graph.iconCache
 
@@ -93,6 +102,33 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     val hiddenApps: StateFlow<List<AppInfo>> = combine(apps, appState) { list, state ->
         list.filter { state.hidden.contains(it.key) }.sortedBy { it.label.lowercase() }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /** Home-screen folders, resolved to real apps and pruned of anything uninstalled. */
+    val folders: StateFlow<List<FolderContent>> = combine(apps, appState) { list, state ->
+        val byKey = list.associateBy { it.key }
+        state.folders.mapNotNull { folder ->
+            val items = folder.items.mapNotNull { byKey[it] }
+            if (items.isEmpty()) null else FolderContent(folder, items)
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /** Raw folder records, used by the "move to folder" picker (including empty ones). */
+    val folderRecords: StateFlow<List<FolderData>> = appState
+        .map { it.folders }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /** Widgets placed on the home screen. */
+    val widgets: StateFlow<List<WidgetSpec>> = widgetRepository.widgets
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /** Unread-notification counts per package; empty unless the user enabled the listener. */
+    val badges: StateFlow<Map<String, Int>> =
+        combine(NotificationBadges.counts, settings) { counts, cfg ->
+            if (cfg.showBadges) counts else emptyMap()
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    private val _iconPacks = MutableStateFlow<List<IconPackRepository.Pack>>(emptyList())
+    val iconPacks: StateFlow<List<IconPackRepository.Pack>> = _iconPacks
 
     /**
      * Time-aware predictions from the launcher's own history (see [Suggester]).
@@ -178,6 +214,69 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     val availableCategories: StateFlow<List<AppCategory>> = visibleApps
         .map { list -> list.map { it.category }.distinct().sortedBy { it.ordinal } }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    init {
+        // Keep the icon cache in sync with the chosen pack.
+        viewModelScope.launch {
+            settings.map { it.iconPack }.distinctUntilChanged().collect { pack ->
+                iconCache.applyPack(pack)
+            }
+        }
+        // Uninstalling an app must not leave a ghost inside a folder.
+        viewModelScope.launch {
+            apps.collect { list ->
+                val installed = list.mapTo(HashSet()) { it.key }
+                if (installed.isEmpty()) return@collect
+                val current = appState.value.folders
+                val pruned = FolderOps.prune(current, installed)
+                if (pruned != current) appStateRepository.setFolders(pruned)
+            }
+        }
+    }
+
+    // --------------------------------------------------------------- folders
+
+    fun createFolder(name: String, firstApp: AppInfo? = null) = viewModelScope.launch {
+        appStateRepository.updateFolders { folders ->
+            FolderOps.create(folders, name, listOfNotNull(firstApp?.key))
+        }
+    }
+
+    fun renameFolder(id: String, name: String) = viewModelScope.launch {
+        appStateRepository.updateFolders { FolderOps.rename(it, id, name) }
+    }
+
+    fun deleteFolder(id: String) = viewModelScope.launch {
+        appStateRepository.updateFolders { FolderOps.delete(it, id) }
+    }
+
+    fun addToFolder(id: String, app: AppInfo) = viewModelScope.launch {
+        appStateRepository.updateFolders { FolderOps.addApp(it, id, app.key) }
+    }
+
+    fun removeFromFolder(id: String, app: AppInfo) = viewModelScope.launch {
+        appStateRepository.updateFolders { FolderOps.removeApp(it, id, app.key) }
+    }
+
+    fun folderOf(app: AppInfo): FolderData? = FolderOps.folderOf(appState.value.folders, app.key)
+
+    // ------------------------------------------------------------ icon packs
+
+    fun loadIconPacks() = viewModelScope.launch {
+        _iconPacks.value = iconCache.installedPacks()
+    }
+
+    fun setIconPack(packageName: String) = viewModelScope.launch {
+        settingsRepository.setIconPack(packageName)
+    }
+
+    // -------------------------------------------------------- backup/restore
+
+    /** Serialises settings, favourites, pins, hidden apps, folders and usage — never the API key. */
+    suspend fun exportBackup(): String = backupManager.export(settings.value, appState.value)
+
+    suspend fun importBackup(text: String): Boolean =
+        backupManager.import(text, settings.value)
 
     // ------------------------------------------------------------ navigation
 
@@ -286,8 +385,42 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun setPersianDate(v: Boolean) = viewModelScope.launch { settingsRepository.setPersianDate(v) }
     fun setFavoritesRows(v: Int) = viewModelScope.launch { settingsRepository.setFavoritesRows(v) }
 
+    fun setShowBadges(v: Boolean) = viewModelScope.launch { settingsRepository.setShowBadges(v) }
+    fun setShowWidgets(v: Boolean) = viewModelScope.launch { settingsRepository.setShowWidgets(v) }
+    fun setSwipeUpAction(a: GestureAction) =
+        viewModelScope.launch { settingsRepository.setSwipeUpAction(a) }
+    fun setSwipeDownAction(a: GestureAction) =
+        viewModelScope.launch { settingsRepository.setSwipeDownAction(a) }
+    fun setDoubleTapAction(a: GestureAction) =
+        viewModelScope.launch { settingsRepository.setDoubleTapAction(a) }
+
+    fun notificationAccessGranted(): Boolean = NotificationBadges.isEnabled(getApplication())
+
+    fun openNotificationAccessSettings(): Boolean = runCatching {
+        getApplication<Application>().startActivity(NotificationBadges.settingsIntent())
+        true
+    }.getOrDefault(false)
+
+    /** Runs a configurable home gesture. Returns false when the action was NONE. */
+    fun runGesture(action: GestureAction): Boolean = when (action) {
+        GestureAction.NONE -> false
+        GestureAction.APP_DRAWER -> { navigate(Screen.Drawer()); true }
+        GestureAction.SEARCH -> { navigate(Screen.Search); true }
+        GestureAction.ASSISTANT -> { navigate(Screen.Chat); true }
+        GestureAction.SETTINGS -> { navigate(Screen.Settings); true }
+        GestureAction.AI_SETUP -> { navigate(Screen.AiSetup); true }
+        GestureAction.WALLPAPER -> openWallpaperPicker()
+    }
+
     fun resetSettings() = viewModelScope.launch {
         settingsRepository.resetAll()
         appStateRepository.resetAll()
+        widgetRepository.clear()
     }
 }
+
+/** A folder plus the installed apps it currently holds. */
+data class FolderContent(
+    val folder: FolderData,
+    val apps: List<AppInfo>,
+)

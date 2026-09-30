@@ -5,11 +5,13 @@ import android.content.Context
 import com.dlck.lnch.ai.gemini.GeminiClient
 import com.dlck.lnch.ai.intent.IntentExecutor
 import com.dlck.lnch.data.apps.AppRepository
+import com.dlck.lnch.data.backup.BackupManager
 import com.dlck.lnch.data.apps.IconCache
 import com.dlck.lnch.data.prefs.AiStateRepository
 import com.dlck.lnch.data.prefs.AppStateRepository
 import com.dlck.lnch.data.prefs.SettingsRepository
 import com.dlck.lnch.data.secure.CredentialStore
+import com.dlck.lnch.data.widgets.WidgetRepository
 import com.dlck.lnch.utils.CrashGuard
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +34,10 @@ class AppGraph(context: Context) {
     val aiStateRepository: AiStateRepository by lazy { AiStateRepository(appContext) }
     val credentialStore: CredentialStore by lazy { CredentialStore(appContext) }
     val iconCache: IconCache by lazy { IconCache(appContext) }
+    val widgetRepository: WidgetRepository by lazy { WidgetRepository(appContext) }
+    val backupManager: BackupManager by lazy {
+        BackupManager(settingsRepository, appStateRepository)
+    }
     val appRepository: AppRepository by lazy { AppRepository(appContext, applicationScope) }
     val geminiClient: GeminiClient by lazy { GeminiClient(credentialStore) }
     val intentExecutor: IntentExecutor by lazy { IntentExecutor(appContext, appRepository) }

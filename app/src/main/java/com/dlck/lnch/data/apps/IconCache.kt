@@ -12,6 +12,8 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.graphics.drawable.toBitmap
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -19,8 +21,14 @@ import kotlinx.coroutines.withContext
 /**
  * Small bounded icon cache. Icons are decoded off the main thread and kept as [ImageBitmap]s so
  * Compose can draw them without per-frame conversions. Bounded by memory class to stay light.
+ *
+ * When an icon pack is active ([applyPack]) its themed drawable wins; anything the pack does not
+ * define silently falls back to the app's own icon, so a partial pack still looks complete.
  */
-class IconCache(private val context: Context) {
+class IconCache(
+    private val context: Context,
+    private val iconPacks: IconPackRepository = IconPackRepository(context),
+) {
 
     private val pm: PackageManager = context.packageManager
     private val mutex = Mutex()
@@ -29,18 +37,38 @@ class IconCache(private val context: Context) {
         override fun sizeOf(key: String, value: ImageBitmap): Int = 1
     }
 
-    fun peek(key: String): ImageBitmap? = cache.get(key)
+    /** Bumped whenever the icon set changes, so Compose knows to re-read every tile. */
+    private val _version = MutableStateFlow(0)
+    val version: StateFlow<Int> = _version
+
+    private var packId: String = ""
+
+    private fun cacheKey(key: String): String = if (packId.isEmpty()) key else "$packId|$key"
+
+    fun peek(key: String): ImageBitmap? = cache.get(cacheKey(key))
+
+    /** Switches (or clears, with a blank name) the active icon pack and invalidates the cache. */
+    suspend fun applyPack(packageName: String) {
+        if (packageName == packId) return
+        iconPacks.select(packageName)
+        packId = if (iconPacks.activePack == packageName) packageName else ""
+        mutex.withLock { cache.evictAll() }
+        _version.value = _version.value + 1
+    }
+
+    suspend fun installedPacks(): List<IconPackRepository.Pack> = iconPacks.installedPacks()
 
     suspend fun load(app: AppInfo, sizePx: Int): ImageBitmap? {
-        cache.get(app.key)?.let { return it }
+        val key = cacheKey(app.key)
+        cache.get(key)?.let { return it }
         val decoded = withContext(Dispatchers.IO) {
             runCatching { resolveDrawable(app)?.toImageBitmap(sizePx) }.getOrNull()
         } ?: return null
-        mutex.withLock { cache.put(app.key, decoded) }
+        mutex.withLock { cache.put(key, decoded) }
         return decoded
     }
 
-    private fun resolveDrawable(app: AppInfo): Drawable? = runCatching {
+    private fun resolveDrawable(app: AppInfo): Drawable? = themedDrawable(app) ?: runCatching {
         val component = ComponentName(app.packageName, app.activityName)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             pm.getActivityInfo(component, PackageManager.ComponentInfoFlags.of(0L))
@@ -57,12 +85,18 @@ class IconCache(private val context: Context) {
             ?: pm.defaultActivityIcon
     }.getOrNull()
 
+    private fun themedDrawable(app: AppInfo): Drawable? =
+        if (packId.isEmpty()) null else iconPacks.drawableFor(app.packageName, app.activityName)
+
     private fun Drawable.toImageBitmap(sizePx: Int): ImageBitmap {
         val size = sizePx.coerceIn(48, 256)
         return toBitmap(size, size, Bitmap.Config.ARGB_8888).asImageBitmap()
     }
 
-    fun clear() = cache.evictAll()
+    fun clear() {
+        cache.evictAll()
+        _version.value = _version.value + 1
+    }
 
     companion object {
         private const val MAX_ENTRIES = 220

@@ -11,6 +11,10 @@
                                grants it in system settings. The launcher works fully without it and
                                falls back to its own on-device launch history.
       SET_WALLPAPER          : allows the wallpaper picker shortcut from the home-screen long-press menu.
+      BIND_APPWIDGET         : NOT requested. Widgets are bound through the system consent dialog
+                               (ACTION_APPWIDGET_BIND) instead, which is the privilege-free path.
+      Notification access    : granted by the user in system settings, never requested at runtime.
+                               Only per-package counts are read; no content is stored or sent.
     -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -24,7 +28,26 @@
       activities it is supposed to launch. Declaring the intent filter here is the
       privacy-preserving alternative to QUERY_ALL_PACKAGES.
     -->
+    <!--
+      Icon packs advertise themselves with these legacy theme intents. Declaring them lets the
+      settings screen list the packs the user already has installed, without QUERY_ALL_PACKAGES.
+    -->
     <queries>
+        <intent>
+            <action android:name="org.adw.launcher.THEMES" />
+        </intent>
+        <intent>
+            <action android:name="com.gau.go.launcherex.theme" />
+        </intent>
+        <intent>
+            <action android:name="com.novalauncher.THEME" />
+        </intent>
+        <intent>
+            <action android:name="com.anddoes.launcher.THEME" />
+        </intent>
+        <intent>
+            <action android:name="ch.deletescape.lawnchair.ICONPACK" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
@@ -93,6 +116,21 @@
                 android:name="com.android.launcher3.grid.control"
                 android:value="true" />
         </activity>
+
+        <!--
+          Optional notification listener used only for the unread dots on icons.
+          The user must enable it manually in Settings → Notifications → Device & app notifications;
+          the launcher cannot grant it to itself. Only per-package counts are kept in memory.
+        -->
+        <service
+            android:name=".notifications.DlckNotificationListener"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
 
     </application>
 

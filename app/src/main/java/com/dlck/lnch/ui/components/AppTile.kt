@@ -15,6 +15,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -38,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlck.lnch.data.apps.AppInfo
 import com.dlck.lnch.data.apps.IconCache
 
@@ -51,9 +56,13 @@ fun AppIconImage(
 ) {
     val density = LocalDensity.current
     val sizePx = remember(size, density) { with(density) { size.roundToPx() } }
-    var bitmap by remember(app.key) { mutableStateOf<ImageBitmap?>(cache.peek(app.key)) }
+    // Bumped when the icon pack changes, so every tile re-reads its (now themed) icon.
+    val iconVersion by cache.version.collectAsStateWithLifecycle()
+    var bitmap by remember(app.key, iconVersion) {
+        mutableStateOf<ImageBitmap?>(cache.peek(app.key))
+    }
 
-    LaunchedEffect(app.key, sizePx) {
+    LaunchedEffect(app.key, sizePx, iconVersion) {
         if (bitmap == null) bitmap = cache.load(app, sizePx)
     }
 
@@ -93,6 +102,7 @@ fun AppTile(
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
     labelColor: androidx.compose.ui.graphics.Color = LocalContentColor.current,
+    badgeCount: Int = 0,
 ) {
     val haptics = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
@@ -125,7 +135,22 @@ fun AppTile(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        AppIconImage(app = app, cache = cache, size = iconSize)
+        if (badgeCount > 0) {
+            BadgedBox(
+                badge = {
+                    Badge(
+                        modifier = Modifier.offset(x = (-6).dp, y = 4.dp),
+                    ) {
+                        Text(text = if (badgeCount > 99) "99+" else badgeCount.toString())
+                    }
+                },
+                modifier = Modifier.wrapContentSize(),
+            ) {
+                AppIconImage(app = app, cache = cache, size = iconSize)
+            }
+        } else {
+            AppIconImage(app = app, cache = cache, size = iconSize)
+        }
         if (showLabel) {
             Text(
                 text = app.label,

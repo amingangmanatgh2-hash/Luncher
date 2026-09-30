@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Wallpaper
+import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -50,7 +51,12 @@ import com.dlck.lnch.ui.ai.ChatScreen
 import com.dlck.lnch.ui.ai.ChatViewModel
 import com.dlck.lnch.ui.apps.AppActionSheet
 import com.dlck.lnch.ui.apps.AppDrawerScreen
+import com.dlck.lnch.ui.launcher.FolderDialog
+import com.dlck.lnch.ui.launcher.FolderNameDialog
+import com.dlck.lnch.ui.launcher.FolderPickerDialog
 import com.dlck.lnch.ui.launcher.HomeScreen
+import com.dlck.lnch.ui.launcher.widgets.WidgetHostController
+import com.dlck.lnch.ui.launcher.widgets.WidgetPickerDialog
 import com.dlck.lnch.ui.search.SearchScreen
 import com.dlck.lnch.ui.settings.SettingsScreen
 
@@ -59,12 +65,17 @@ import com.dlck.lnch.ui.settings.SettingsScreen
  * Animations honour the "Animations" setting so low-end devices can turn them off completely.
  */
 @Composable
-fun LauncherRoot(viewModel: LauncherViewModel) {
+fun LauncherRoot(
+    viewModel: LauncherViewModel,
+    widgetController: WidgetHostController? = null,
+) {
     val backStack by viewModel.backStack.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val favorites by viewModel.favoriteKeys.collectAsStateWithLifecycle()
     val pinned by viewModel.pinnedKeys.collectAsStateWithLifecycle()
     val hidden by viewModel.hiddenKeys.collectAsStateWithLifecycle()
+    val folderRecords by viewModel.folderRecords.collectAsStateWithLifecycle()
+    val folders by viewModel.folders.collectAsStateWithLifecycle()
 
     val chatViewModel: ChatViewModel =
         androidx.lifecycle.viewmodel.compose.viewModel<ChatViewModel>()
@@ -75,6 +86,11 @@ fun LauncherRoot(viewModel: LauncherViewModel) {
     var sheetApp by remember { mutableStateOf<AppInfo?>(null) }
     var showHomeMenu by remember { mutableStateOf(false) }
     var chatPrefill by remember { mutableStateOf<String?>(null) }
+    var openFolderId by remember { mutableStateOf<String?>(null) }
+    var renameFolderId by remember { mutableStateOf<String?>(null) }
+    var creatingFolderFor by remember { mutableStateOf<AppInfo?>(null) }
+    var movingApp by remember { mutableStateOf<AppInfo?>(null) }
+    var showWidgetPicker by remember { mutableStateOf(false) }
 
     BackHandler(enabled = backStack.size > 1) { viewModel.goBack() }
 
@@ -125,6 +141,9 @@ fun LauncherRoot(viewModel: LauncherViewModel) {
                     },
                     onAppLongPress = { sheetApp = it },
                     onHomeLongPress = { showHomeMenu = true },
+                    onFolderClick = { openFolderId = it.folder.id },
+                    onFolderLongPress = { renameFolderId = it.folder.id },
+                    widgetController = widgetController,
                 )
 
                 is Screen.Drawer -> AppDrawerScreen(
@@ -217,6 +236,99 @@ fun LauncherRoot(viewModel: LauncherViewModel) {
                 sheetApp = null
                 viewModel.uninstall(app)
             },
+            onMoveToFolder = {
+                movingApp = app
+                sheetApp = null
+            },
+            folderName = viewModel.folderOf(app)?.name,
+        )
+    }
+
+    // ------------------------------------------------------------- folders
+
+    openFolderId?.let { id ->
+        val content = folders.firstOrNull { it.folder.id == id }
+        if (content == null) {
+            openFolderId = null
+        } else {
+            FolderDialog(
+                content = content,
+                cache = viewModel.iconCache,
+                columns = settings.drawerColumns,
+                iconSize = settings.iconSizeDp.dp,
+                onOpenApp = { app ->
+                    openFolderId = null
+                    viewModel.launch(app)
+                },
+                onAppLongPress = { app ->
+                    openFolderId = null
+                    sheetApp = app
+                },
+                onRename = {
+                    renameFolderId = id
+                    openFolderId = null
+                },
+                onDismiss = { openFolderId = null },
+            )
+        }
+    }
+
+    renameFolderId?.let { id ->
+        val folder = folderRecords.firstOrNull { it.id == id }
+        if (folder == null) {
+            renameFolderId = null
+        } else {
+            FolderNameDialog(
+                initialName = folder.name,
+                onConfirm = { name ->
+                    viewModel.renameFolder(id, name)
+                    renameFolderId = null
+                },
+                onDelete = {
+                    viewModel.deleteFolder(id)
+                    renameFolderId = null
+                },
+                onDismiss = { renameFolderId = null },
+            )
+        }
+    }
+
+    creatingFolderFor?.let { app ->
+        FolderNameDialog(
+            initialName = "",
+            onConfirm = { name ->
+                viewModel.createFolder(name, app)
+                creatingFolderFor = null
+            },
+            onDelete = null,
+            onDismiss = { creatingFolderFor = null },
+        )
+    }
+
+    movingApp?.let { app ->
+        FolderPickerDialog(
+            folders = folderRecords,
+            currentFolderId = viewModel.folderOf(app)?.id,
+            onPick = { folder ->
+                viewModel.addToFolder(folder.id, app)
+                movingApp = null
+            },
+            onCreate = {
+                creatingFolderFor = app
+                movingApp = null
+            },
+            onClear = {
+                viewModel.folderOf(app)?.let { viewModel.removeFromFolder(it.id, app) }
+                movingApp = null
+            },
+            onDismiss = { movingApp = null },
+        )
+    }
+
+    if (showWidgetPicker && widgetController != null) {
+        WidgetPickerDialog(
+            controller = widgetController,
+            onDismiss = { showWidgetPicker = false },
         )
     }
 
@@ -234,6 +346,15 @@ fun LauncherRoot(viewModel: LauncherViewModel) {
                 ) {
                     showHomeMenu = false
                     viewModel.openWallpaperPicker()
+                }
+                if (widgetController != null) {
+                    HomeMenuItem(
+                        text = stringResource(R.string.widgets_add),
+                        icon = { Icon(Icons.Filled.Widgets, contentDescription = null) },
+                    ) {
+                        showHomeMenu = false
+                        showWidgetPicker = true
+                    }
                 }
                 HomeMenuItem(
                     text = stringResource(R.string.settings_title),

@@ -45,6 +45,12 @@ class SettingsRepository(private val context: Context) {
         val persianDate = booleanPreferencesKey("persian_date")
         val favoritesRows = intPreferencesKey("favorites_rows")
         val geminiModel = stringPreferencesKey("gemini_model")
+        val iconPack = stringPreferencesKey("icon_pack")
+        val showBadges = booleanPreferencesKey("show_badges")
+        val showWidgets = booleanPreferencesKey("show_widgets")
+        val swipeUp = stringPreferencesKey("gesture_swipe_up")
+        val swipeDown = stringPreferencesKey("gesture_swipe_down")
+        val doubleTap = stringPreferencesKey("gesture_double_tap")
     }
 
     val settings: Flow<LauncherSettings> = context.settingsDataStore.data
@@ -75,6 +81,14 @@ class SettingsRepository(private val context: Context) {
             persianDate = this[Keys.persianDate] ?: defaults.persianDate,
             favoritesRows = this[Keys.favoritesRows] ?: defaults.favoritesRows,
             geminiModel = this[Keys.geminiModel] ?: defaults.geminiModel,
+            iconPack = this[Keys.iconPack] ?: defaults.iconPack,
+            showBadges = this[Keys.showBadges] ?: defaults.showBadges,
+            showWidgets = this[Keys.showWidgets] ?: defaults.showWidgets,
+            swipeUpAction = this[Keys.swipeUp]?.toEnum<GestureAction>() ?: defaults.swipeUpAction,
+            swipeDownAction = this[Keys.swipeDown]?.toEnum<GestureAction>()
+                ?: defaults.swipeDownAction,
+            doubleTapAction = this[Keys.doubleTap]?.toEnum<GestureAction>()
+                ?: defaults.doubleTapAction,
         )
     }
 
@@ -104,6 +118,12 @@ class SettingsRepository(private val context: Context) {
     suspend fun setPersianDate(value: Boolean) = edit { it[Keys.persianDate] = value }
     suspend fun setFavoritesRows(value: Int) = edit { it[Keys.favoritesRows] = value.coerceIn(1, 3) }
     suspend fun setGeminiModel(model: String) = edit { it[Keys.geminiModel] = model }
+    suspend fun setIconPack(packageName: String) = edit { it[Keys.iconPack] = packageName }
+    suspend fun setShowBadges(value: Boolean) = edit { it[Keys.showBadges] = value }
+    suspend fun setShowWidgets(value: Boolean) = edit { it[Keys.showWidgets] = value }
+    suspend fun setSwipeUpAction(a: GestureAction) = edit { it[Keys.swipeUp] = a.name }
+    suspend fun setSwipeDownAction(a: GestureAction) = edit { it[Keys.swipeDown] = a.name }
+    suspend fun setDoubleTapAction(a: GestureAction) = edit { it[Keys.doubleTap] = a.name }
 
     suspend fun resetAll() = context.settingsDataStore.edit { it.clear() }
 }

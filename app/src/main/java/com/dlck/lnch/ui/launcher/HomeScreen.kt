@@ -54,7 +54,10 @@ import com.dlck.lnch.ui.LauncherViewModel
 import com.dlck.lnch.ui.components.AppTile
 import com.dlck.lnch.ui.components.AuroraBackground
 import com.dlck.lnch.ui.components.GlassSurface
+import com.dlck.lnch.ui.FolderContent
 import com.dlck.lnch.ui.components.accentGradient
+import com.dlck.lnch.ui.launcher.widgets.WidgetColumn
+import com.dlck.lnch.ui.launcher.widgets.WidgetHostController
 
 /**
  * The home screen.
@@ -73,12 +76,18 @@ fun HomeScreen(
     onOpenChat: () -> Unit,
     onAppLongPress: (AppInfo) -> Unit,
     onHomeLongPress: () -> Unit,
+    onFolderClick: (FolderContent) -> Unit,
+    onFolderLongPress: (FolderContent) -> Unit,
+    widgetController: WidgetHostController?,
     modifier: Modifier = Modifier,
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val favorites by viewModel.favorites.collectAsStateWithLifecycle()
     val recents by viewModel.recentApps.collectAsStateWithLifecycle()
     val suggestions by viewModel.suggestedApps.collectAsStateWithLifecycle()
+    val folders by viewModel.folders.collectAsStateWithLifecycle()
+    val widgets by viewModel.widgets.collectAsStateWithLifecycle()
+    val badges by viewModel.badges.collectAsStateWithLifecycle()
 
     val contentColor = Color.White
     val dragTotal = remember { mutableFloatStateOf(0f) }
@@ -92,8 +101,11 @@ fun HomeScreen(
                     onDragStart = { dragTotal.floatValue = 0f },
                     onDragEnd = {
                         when {
-                            dragTotal.floatValue < -SWIPE_THRESHOLD_PX -> onOpenDrawer()
-                            dragTotal.floatValue > SWIPE_THRESHOLD_PX -> onOpenSearch()
+                            dragTotal.floatValue < -SWIPE_THRESHOLD_PX ->
+                                viewModel.runGesture(settings.swipeUpAction)
+
+                            dragTotal.floatValue > SWIPE_THRESHOLD_PX ->
+                                viewModel.runGesture(settings.swipeDownAction)
                         }
                     },
                 ) { _, dragAmount -> dragTotal.floatValue += dragAmount }
@@ -104,10 +116,11 @@ fun HomeScreen(
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         onHomeLongPress()
                     },
-                    // Double-tapping empty space is the fastest way into the assistant.
+                    // Double-tapping empty space runs the user's chosen action (assistant
+                    // by default).
                     onDoubleTap = {
                         haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onOpenChat()
+                        viewModel.runGesture(settings.doubleTapAction)
                     },
                 )
             },
@@ -136,6 +149,15 @@ fun HomeScreen(
                     contentColor = contentColor,
                     onClockClick = onOpenSearch,
                     onDateClick = onOpenDrawer,
+                )
+            }
+
+            if (settings.showWidgets && widgetController != null && widgets.isNotEmpty()) {
+                Spacer(Modifier.height(14.dp))
+                WidgetColumn(
+                    controller = widgetController,
+                    widgets = widgets,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
 
@@ -177,6 +199,7 @@ fun HomeScreen(
                                 onClick = { viewModel.launch(app) },
                                 onLongClick = { onAppLongPress(app) },
                                 labelColor = contentColor,
+                                badgeCount = badges[app.packageName] ?: 0,
                             )
                         }
                     }
@@ -209,6 +232,7 @@ fun HomeScreen(
                                 onClick = { viewModel.launch(app) },
                                 onLongClick = { onAppLongPress(app) },
                                 labelColor = contentColor,
+                                badgeCount = badges[app.packageName] ?: 0,
                             )
                         }
                     }
@@ -234,6 +258,7 @@ fun HomeScreen(
                             onClick = { viewModel.launch(app) },
                             onLongClick = { onAppLongPress(app) },
                             labelColor = contentColor,
+                            badgeCount = badges[app.packageName] ?: 0,
                         )
                     }
                 }
@@ -245,6 +270,27 @@ fun HomeScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
                 )
+            }
+
+            if (folders.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    contentPadding = PaddingValues(horizontal = 2.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    items(folders, key = { it.folder.id }) { folder ->
+                        FolderTile(
+                            content = folder,
+                            cache = viewModel.iconCache,
+                            iconSize = settings.iconSizeDp.dp,
+                            showLabel = settings.showLabels,
+                            labelColor = contentColor,
+                            onClick = { onFolderClick(folder) },
+                            onLongClick = { onFolderLongPress(folder) },
+                        )
+                    }
+                }
             }
 
             Spacer(Modifier.height(12.dp))

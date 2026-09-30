@@ -26,8 +26,8 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -39,6 +39,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,8 +57,10 @@ import com.dlck.lnch.data.apps.AppInfo
 import com.dlck.lnch.data.apps.IconCache
 import com.dlck.lnch.data.prefs.AccentColor
 import com.dlck.lnch.data.prefs.AppLanguage
+import com.dlck.lnch.data.prefs.GestureAction
 import com.dlck.lnch.data.prefs.ThemeMode
 import com.dlck.lnch.ui.LauncherViewModel
+import com.dlck.lnch.ui.LocalBackupBridge
 import com.dlck.lnch.ui.components.AppIconImage
 import com.dlck.lnch.ui.components.ScreenHeader
 import com.dlck.lnch.ui.components.SectionTitle
@@ -73,6 +76,16 @@ fun SettingsScreen(
     val usageGranted by viewModel.usageAccessGranted.collectAsStateWithLifecycle()
     val hiddenApps by viewModel.hiddenApps.collectAsStateWithLifecycle()
     var showHiddenManager by remember { mutableStateOf(false) }
+    var showIconPacks by remember { mutableStateOf(false) }
+    var gesturePicker by remember { mutableStateOf<GestureSlot?>(null) }
+    val iconPacks by viewModel.iconPacks.collectAsStateWithLifecycle()
+    val backupBridge = LocalBackupBridge.current
+    var notificationAccess by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        viewModel.loadIconPacks()
+        notificationAccess = viewModel.notificationAccessGranted()
+    }
     val context = LocalContext.current
     val isDefaultHome = remember(context) { isDefaultLauncher(context) }
 
@@ -246,6 +259,18 @@ fun SettingsScreen(
                 )
             }
             item {
+                NavRow(
+                    title = stringResource(R.string.settings_icon_pack),
+                    subtitle = settings.iconPack.ifBlank {
+                        stringResource(R.string.settings_icon_pack_none)
+                    },
+                    onClick = {
+                        viewModel.loadIconPacks()
+                        showIconPacks = true
+                    },
+                )
+            }
+            item {
                 SwitchRow(
                     title = stringResource(R.string.settings_show_labels),
                     checked = settings.showLabels,
@@ -314,6 +339,32 @@ fun SettingsScreen(
                 )
             }
             item {
+                SwitchRow(
+                    title = stringResource(R.string.settings_show_widgets),
+                    subtitle = stringResource(R.string.settings_show_widgets_desc),
+                    checked = settings.showWidgets,
+                    onCheckedChange = viewModel::setShowWidgets,
+                )
+            }
+            item {
+                SwitchRow(
+                    title = stringResource(R.string.settings_show_badges),
+                    subtitle = stringResource(R.string.settings_show_badges_desc),
+                    checked = settings.showBadges,
+                    onCheckedChange = viewModel::setShowBadges,
+                )
+            }
+            item {
+                NavRow(
+                    title = stringResource(
+                        if (notificationAccess) R.string.settings_badges_granted
+                        else R.string.settings_badges_denied,
+                    ),
+                    subtitle = stringResource(R.string.settings_badges_desc),
+                    onClick = { viewModel.openNotificationAccessSettings() },
+                )
+            }
+            item {
                 NavRow(
                     title = stringResource(R.string.settings_hidden_apps),
                     subtitle = pluralStringResource(
@@ -339,6 +390,47 @@ fun SettingsScreen(
                     title = stringResource(R.string.settings_wallpaper),
                     subtitle = null,
                     onClick = { viewModel.openWallpaperPicker() },
+                )
+            }
+
+            // ------------------------------------------------- gestures
+            item { SectionTitle(stringResource(R.string.settings_gestures)) }
+            item {
+                NavRow(
+                    title = stringResource(R.string.settings_gesture_swipe_up),
+                    subtitle = gestureLabel(settings.swipeUpAction),
+                    onClick = { gesturePicker = GestureSlot.SWIPE_UP },
+                )
+            }
+            item {
+                NavRow(
+                    title = stringResource(R.string.settings_gesture_swipe_down),
+                    subtitle = gestureLabel(settings.swipeDownAction),
+                    onClick = { gesturePicker = GestureSlot.SWIPE_DOWN },
+                )
+            }
+            item {
+                NavRow(
+                    title = stringResource(R.string.settings_gesture_double_tap),
+                    subtitle = gestureLabel(settings.doubleTapAction),
+                    onClick = { gesturePicker = GestureSlot.DOUBLE_TAP },
+                )
+            }
+
+            // ------------------------------------------------- backup
+            item { SectionTitle(stringResource(R.string.settings_backup)) }
+            item {
+                NavRow(
+                    title = stringResource(R.string.settings_backup_export),
+                    subtitle = stringResource(R.string.settings_backup_export_desc),
+                    onClick = { backupBridge?.exportBackup() },
+                )
+            }
+            item {
+                NavRow(
+                    title = stringResource(R.string.settings_backup_restore),
+                    subtitle = stringResource(R.string.settings_backup_restore_desc),
+                    onClick = { backupBridge?.restoreBackup() },
                 )
             }
 
@@ -377,6 +469,38 @@ fun SettingsScreen(
         }
     }
 
+    if (showIconPacks) {
+        IconPackDialog(
+            packs = iconPacks,
+            selected = settings.iconPack,
+            onSelect = { pack ->
+                viewModel.setIconPack(pack)
+                showIconPacks = false
+            },
+            onDismiss = { showIconPacks = false },
+        )
+    }
+
+    gesturePicker?.let { slot ->
+        GesturePickerDialog(
+            title = stringResource(slot.titleRes),
+            selected = when (slot) {
+                GestureSlot.SWIPE_UP -> settings.swipeUpAction
+                GestureSlot.SWIPE_DOWN -> settings.swipeDownAction
+                GestureSlot.DOUBLE_TAP -> settings.doubleTapAction
+            },
+            onSelect = { action ->
+                when (slot) {
+                    GestureSlot.SWIPE_UP -> viewModel.setSwipeUpAction(action)
+                    GestureSlot.SWIPE_DOWN -> viewModel.setSwipeDownAction(action)
+                    GestureSlot.DOUBLE_TAP -> viewModel.setDoubleTapAction(action)
+                }
+                gesturePicker = null
+            },
+            onDismiss = { gesturePicker = null },
+        )
+    }
+
     if (showHiddenManager) {
         HiddenAppsDialog(
             apps = hiddenApps,
@@ -385,6 +509,126 @@ fun SettingsScreen(
             onDismiss = { showHiddenManager = false },
         )
     }
+}
+
+/** Which home gesture is being reassigned. */
+private enum class GestureSlot(val titleRes: Int) {
+    SWIPE_UP(R.string.settings_gesture_swipe_up),
+    SWIPE_DOWN(R.string.settings_gesture_swipe_down),
+    DOUBLE_TAP(R.string.settings_gesture_double_tap),
+}
+
+@Composable
+private fun gestureLabel(action: GestureAction): String = stringResource(
+    when (action) {
+        GestureAction.NONE -> R.string.gesture_none
+        GestureAction.APP_DRAWER -> R.string.drawer_title
+        GestureAction.SEARCH -> R.string.gesture_search
+        GestureAction.ASSISTANT -> R.string.ai_title
+        GestureAction.SETTINGS -> R.string.settings_title
+        GestureAction.WALLPAPER -> R.string.settings_wallpaper
+        GestureAction.AI_SETUP -> R.string.settings_ai_setup
+    },
+)
+
+@Composable
+private fun GesturePickerDialog(
+    title: String,
+    selected: GestureAction,
+    onSelect: (GestureAction) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
+        },
+        text = {
+            Column {
+                GestureAction.entries.forEach { action ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(action) }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        RadioButton(selected = action == selected, onClick = { onSelect(action) })
+                        Text(text = gestureLabel(action))
+                    }
+                }
+            }
+        },
+    )
+}
+
+/** Lists the icon packs installed on the device. */
+@Composable
+private fun IconPackDialog(
+    packs: List<com.dlck.lnch.data.apps.IconPackRepository.Pack>,
+    selected: String,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_icon_pack)) },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
+        },
+        text = {
+            LazyColumn(modifier = Modifier.height(300.dp)) {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect("") }
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        RadioButton(selected = selected.isBlank(), onClick = { onSelect("") })
+                        Text(stringResource(R.string.settings_icon_pack_none))
+                    }
+                }
+                if (packs.isEmpty()) {
+                    item {
+                        Text(
+                            text = stringResource(R.string.settings_icon_pack_empty),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 8.dp),
+                        )
+                    }
+                }
+                items(packs, key = { it.packageName }) { pack ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(pack.packageName) }
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        RadioButton(
+                            selected = selected == pack.packageName,
+                            onClick = { onSelect(pack.packageName) },
+                        )
+                        Column {
+                            Text(text = pack.label)
+                            Text(
+                                text = pack.packageName,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+    )
 }
 
 /** Lets the user bring hidden apps back — otherwise hiding would be a one-way door. */
