@@ -87,7 +87,11 @@ DLCK LNCH جایگزین صفحه اصلی گوشی شما می‌شود: ساع
 - **Recently used** — driven by the launcher's own launch history (zero permissions); enriched with Android UsageStats *only* if you grant Usage Access.
 - **Categories** — Games, Social, Productivity, Media, News, Maps, System, Other, derived from the app's declared category with a package-name fallback.
 - **App menu** — Open · Pin/Unpin · Favourite · Hide · App info · Uninstall (a safe `ACTION_DELETE`; the system asks for confirmation — the launcher never force-removes anything).
-- **Search screen** — searches installed apps and offers to hand the same query to the AI assistant or to the web.
+- **Smart suggestions** — a "Suggested for now" row that predicts what you are about to open from *when* you normally open it (hour-of-day context 50%, recency 30%, frequency 20%). Computed on-device from the launcher's own history, no permission and no network; one switch turns it off.
+- **Search screen** — searches installed apps, does **maths inline** (`12*7+3` → `87`, Persian digits and `٫` included, tap to copy) and offers to hand the same query to the AI assistant or to the web.
+- **A–Z fast scroll** — a letter rail on the drawer edge (English *and* Persian آ–ی, with `#` for digits/symbols); tap or drag to jump, with haptic ticks.
+- **App shortcuts** — long-press an icon to get the app's own shortcuts ("New message", "Scan QR"…) straight from the system `LauncherApps` API, available once DLCK LNCH is your default home app.
+- **Hidden-apps manager** — Settings lists everything you hid and brings it back with one tap, so hiding is never a one-way door.
 
 ### Interface
 - **Living aurora background** — soft colour blobs drift slowly over your wallpaper (translucent, never hides it) and freeze instantly when animations are off.
@@ -116,6 +120,12 @@ DLCK LNCH جایگزین صفحه اصلی گوشی شما می‌شود: ساع
 برنامه‌های محبوب و ردیف «اخیراً استفاده‌شده» · لیست کامل برنامه‌ها با جستجوی فازی، فیلتر دسته‌بندی و
 **مرتب‌سازی بر اساس نام (صعودی/نزولی)، پرکاربردترین و تازه‌نصب‌شده** · سنجاق کردن و افزودن به
 محبوب‌ها · منوی هر برنامه شامل باز کردن، سنجاق، محبوب، مخفی‌سازی، اطلاعات برنامه و حذف امن.
+
+**هوشمندی روی گوشی:** ردیف **«پیشنهاد برای این ساعت»** که بر پایهٔ ساعتِ استفادهٔ خودتان (۵۰٪ زمینهٔ
+زمانی، ۳۰٪ تازگی، ۲۰٪ تعداد) پیش‌بینی می‌کند چه می‌خواهید باز کنید — کاملاً محلی، بدون مجوز و بدون
+اینترنت · **ماشین‌حساب داخل جستجو** (`۱۲×۷+۳`) با ارقام فارسی و کپی با یک لمس · **نوار حروف الفبا**
+کنار لیست برنامه‌ها برای پرش سریع (آ تا ی و A تا Z) · **میان‌برهای برنامه‌ها** با نگه‌داشتن آیکن ·
+**مدیریت برنامه‌های پنهان** در تنظیمات برای بازگرداندن آن‌ها.
 
 **رابط کاربری:** متریال ۳ با رنگ پویا در اندروید ۱۲ به بالا، شش رنگ تأکیدی، حالت روشن/تیره/سیستم،
 **راست‌چین کامل فارسی**، تغییر زبان برنامه بدون تغییر زبان گوشی، و امکان خاموش کردن کامل انیمیشن‌ها.
@@ -505,7 +515,7 @@ git clone https://github.com/amingangmanatgh2-hash/Luncher.git
 cd Luncher
 git checkout arena/01a0ed54-luncher
 
-./gradlew testDebugUnitTest      # 29 JVM unit tests
+./gradlew testDebugUnitTest      # 52 JVM unit tests
 ./gradlew assembleDebug          # app/build/outputs/apk/debug/
 ./gradlew assembleRelease        # app/build/outputs/apk/release/
 ```
@@ -541,7 +551,7 @@ contains **no** signing secret.
 
 ## 15. Tests & CI
 
-**29 JVM unit tests** (`app/src/test/java/com/dlck/lnch/`):
+**52 JVM unit tests** (`app/src/test/java/com/dlck/lnch/`):
 
 | File | Covers |
 |---|---|
@@ -549,6 +559,9 @@ contains **no** signing secret.
 | `IntentSystemTest.kt` (12) | validator clamping, string truncation, timer bounds, settings allowlist, confirmation flags, offline parser |
 | `JalaliDateTest.kt` (4) | Gregorian ↔ Jalali conversion incl. leap years |
 | `MarkdownTest.kt` (7) | bold/code/bullet/heading stripping, unbalanced markers kept verbatim, Persian intact |
+| `CalculatorTest.kt` (7) | precedence, right-associative `^`, unary minus, Persian digits/separators, division by zero, and *not* treating "maps" or "42" as maths |
+| `SuggesterTest.kt` (9) | hour-of-day ranking beats raw popularity, neighbour hours at half weight, recency tiebreak, midnight wrap, legacy stats without a histogram, hour-bucket recording |
+| `AlphabetIndexTest.kt` (7) | section indices, `#` bucket, Arabic→Persian letter folding, unsorted lists, touch-offset clamping |
 
 **CI** ([`.github/workflows/build-apk.yml`](.github/workflows/build-apk.yml)) on every push to the working branch:
 
@@ -681,7 +694,7 @@ straight through. Details: [`proxy/README.md`](proxy/README.md) · code: [`proxy
 ## 19. Known limitations
 
 - The published release APK is signed with the **CI debug keystore** (no signing secret is stored in this repo), so it installs and runs but is not Play-Store ready as-is — see [§14](#14-build-from-source).
-- No instrumented (device) UI tests: CI has no emulator. Coverage is 29 JVM unit tests plus a real compile of both build types.
+- No instrumented (device) UI tests: CI has no emulator. Coverage is 52 JVM unit tests plus a real compile of both build types.
 - The APKs have not been executed on physical hardware by the author of this branch — they are produced and verified by CI (compile, unit tests, credential scan, packaging), not by manual on-device QA.
 - Widgets, icon packs, folders, and a desktop grid you can arrange freely are not implemented.
 - Gemini streaming depends on the model supporting SSE; the client falls back to a single response otherwise.
