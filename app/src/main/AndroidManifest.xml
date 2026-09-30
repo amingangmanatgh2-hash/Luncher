@@ -33,6 +33,14 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />
         </intent>
+        <!--
+          Lets the chat screen detect whether a system speech recogniser exists before showing the
+          microphone button. Dictation is delegated to that app, so DLCK LNCH itself never needs
+          the RECORD_AUDIO permission and never touches the microphone.
+        -->
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
     </queries>
 
     <application

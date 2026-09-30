@@ -108,6 +108,7 @@
     <string name="ai_title">دستیار هوشمند</string>
     <string name="ai_input_hint">هر چیزی بپرسید یا بگویید چه چیزی را باز کنم…</string>
     <string name="ai_send">ارسال</string>
+    <string name="ai_voice_input">به‌جای تایپ، صحبت کنید</string>
     <string name="ai_clear">پاک کردن گفتگو</string>
     <string name="ai_thinking">در حال فکر کردن…</string>
     <string name="ai_typing">دستیار در حال نوشتن است…</string>

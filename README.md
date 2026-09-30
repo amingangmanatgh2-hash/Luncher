@@ -90,6 +90,10 @@ DLCK LNCH جایگزین صفحه اصلی گوشی شما می‌شود: ساع
 - **Search screen** — searches installed apps and offers to hand the same query to the AI assistant or to the web.
 
 ### Interface
+- **Living aurora background** — soft colour blobs drift slowly over your wallpaper (translucent, never hides it) and freeze instantly when animations are off.
+- **Frosted-glass panels** with gradient rims for the search bar, drawer and chat surfaces.
+- **Springy touch feedback** — icons compress under the finger, screens rise and settle with spring physics, long-press is confirmed by haptics.
+- **Adaptive + themed launcher icon** — gradient "D" monogram with a real monochrome layer, so Android 13+ tints it with your wallpaper palette.
 - **Material 3** with dynamic colour on Android 12+, plus six accent presets (Cyan, Violet, Emerald, Amber, Rose, Blue).
 - **Dark / Light / follow-system** themes.
 - **Full Persian RTL** — every screen mirrors correctly, and a per-app language override (System / English / فارسی) that does not require changing the device language.
@@ -97,6 +101,8 @@ DLCK LNCH جایگزین صفحه اصلی گوشی شما می‌شود: ساع
 
 ### AI
 - Chat with **streaming responses** (SSE), typing indicator, retry, copy, and clear-chat.
+- **Voice input** — dictate instead of typing. Handled by the *system* recogniser, so the launcher needs **no `RECORD_AUDIO` permission** and never touches the microphone; the transcript lands in the field so you can edit it before sending. The button hides itself when no recogniser is installed.
+- **Markdown-aware replies** — `**bold**`, `` `code` `` and `- ` bullets render properly instead of showing raw markers.
 - **Offline fast path** — a local, deterministic matcher handles "open X" / "search X" without ever calling the network.
 - **Structured output** — the model answers with a JSON schema, so an intent is either valid or clamped to a plain chat reply.
 - Explicit **confirmation cards** for sensitive actions.
@@ -114,7 +120,11 @@ DLCK LNCH جایگزین صفحه اصلی گوشی شما می‌شود: ساع
 **رابط کاربری:** متریال ۳ با رنگ پویا در اندروید ۱۲ به بالا، شش رنگ تأکیدی، حالت روشن/تیره/سیستم،
 **راست‌چین کامل فارسی**، تغییر زبان برنامه بدون تغییر زبان گوشی، و امکان خاموش کردن کامل انیمیشن‌ها.
 
-**هوش مصنوعی:** گفتگو با پاسخ **جریانی**، نشانگر تایپ، تلاش مجدد، کپی و پاک کردن گفتگو · مسیر سریع
+**رابط خفن:** پس‌زمینه **شفق متحرک** روی والپیپر شما، پنل‌های **شیشه‌ای** با لبه گرادیانی، بازخورد
+لمسی فنری، و آیکن تطبیقی با لایه **مونوکروم** برای تم‌پذیری اندروید ۱۳.
+
+**هوش مصنوعی:** گفتگو با پاسخ **جریانی**، **ورودی صوتی** (با موتور تشخیص گفتار خود گوشی، بدون نیاز
+به مجوز میکروفون)، نمایش **Markdown** در پاسخ‌ها، نشانگر تایپ، تلاش مجدد، کپی و پاک کردن گفتگو · مسیر سریع
 **آفلاین** برای دستورهای ساده بدون تماس شبکه‌ای · خروجی ساختاریافته JSON · کارت **تأیید** برای
 اقدامات حساس · پیام خطای دقیق برای کلید نامعتبر، دسترسی، سهمیه، مدل، زمان‌انتظار و آفلاین.
 
@@ -279,6 +289,7 @@ The app also has **Settings → Set as default launcher**, which opens the corre
 |---|---|
 | **Swipe up** on home | open the App Drawer |
 | **Swipe down** on home | open Search |
+| **Double-tap** empty home space | jump straight into the AI assistant |
 | **Long press** an app icon | app menu: Open · Pin · Favourite · Hide · App info · Uninstall |
 | **Long press** empty home space | Wallpaper · Settings · AI Setup |
 | Tap the search bar | Search screen (apps + "ask the AI" + "search the web") |
@@ -289,7 +300,8 @@ The app also has **Settings → Set as default launcher**, which opens the corre
 
 ### ۸. ژست‌ها
 
-کشیدن انگشت به **بالا** = لیست برنامه‌ها · کشیدن به **پایین** = جستجو · **نگه‌داشتن** روی آیکن =
+کشیدن انگشت به **بالا** = لیست برنامه‌ها · کشیدن به **پایین** = جستجو · **دوبار ضربه** روی فضای
+خالی = ورود مستقیم به دستیار · **نگه‌داشتن** روی آیکن =
 منوی برنامه · **نگه‌داشتن** روی فضای خالی = والپیپر، تنظیمات، AI Setup · دکمه دستیار گوشی = ورود
 مستقیم به گفتگوی هوش مصنوعی · دکمه بازگشت = عقب رفتن در پشته داخلی لانچر تا صفحه اصلی.
 
@@ -421,7 +433,9 @@ Uninstalling the app destroys the encrypted store, and with it the key.
 | `PACKAGE_USAGE_STATS` | more accurate "recently used" ordering | **optional** — never requested automatically; the section works from the launcher's own history without it |
 | `<queries>` (not a permission) | list launchable activities without `QUERY_ALL_PACKAGES` | — |
 
-Not requested: contacts, location, camera, microphone, storage, SMS, phone, notifications.
+Not requested: contacts, location, camera, **microphone**, storage, SMS, phone, notifications.
+Voice input works *without* `RECORD_AUDIO` because dictation is delegated to the system recogniser
+through `ACTION_RECOGNIZE_SPEECH` — DLCK LNCH only receives the final transcript.
 Every one of these is explained in-app on the Settings screen next to the toggle that needs it.
 
 <div dir="rtl">
@@ -491,7 +505,7 @@ git clone https://github.com/amingangmanatgh2-hash/Luncher.git
 cd Luncher
 git checkout arena/01a0ed54-luncher
 
-./gradlew testDebugUnitTest      # 22 JVM unit tests
+./gradlew testDebugUnitTest      # 29 JVM unit tests
 ./gradlew assembleDebug          # app/build/outputs/apk/debug/
 ./gradlew assembleRelease        # app/build/outputs/apk/release/
 ```
@@ -527,13 +541,14 @@ contains **no** signing secret.
 
 ## 15. Tests & CI
 
-**22 JVM unit tests** (`app/src/test/java/com/dlck/lnch/`):
+**29 JVM unit tests** (`app/src/test/java/com/dlck/lnch/`):
 
 | File | Covers |
 |---|---|
 | `AppMatcherTest.kt` (6) | Persian/Arabic normalisation, transliteration, scoring order, no false positives |
 | `IntentSystemTest.kt` (12) | validator clamping, string truncation, timer bounds, settings allowlist, confirmation flags, offline parser |
 | `JalaliDateTest.kt` (4) | Gregorian ↔ Jalali conversion incl. leap years |
+| `MarkdownTest.kt` (7) | bold/code/bullet/heading stripping, unbalanced markers kept verbatim, Persian intact |
 
 **CI** ([`.github/workflows/build-apk.yml`](.github/workflows/build-apk.yml)) on every push to the working branch:
 
@@ -549,7 +564,7 @@ tagged release `v<version>-build.<run_number>`.
 
 ### ۱۵. تست‌ها و CI
 
-۲۲ تست واحد JVM شامل تطبیق نام برنامه‌ها، اعتبارسنجی اینتنت‌ها و تبدیل تاریخ شمسی. خط لوله CI در هر
+۲۹ تست واحد JVM شامل تطبیق نام برنامه‌ها، اعتبارسنجی اینتنت‌ها و تبدیل تاریخ شمسی. خط لوله CI در هر
 push اجرا می‌شود: اسکن رمز → تست‌ها → ساخت debug و release → جستجوی الگوی کلید داخل APK → آپلود
 خروجی‌ها → انتشار Release.
 
@@ -665,10 +680,9 @@ straight through. Details: [`proxy/README.md`](proxy/README.md) · code: [`proxy
 ## 19. Known limitations
 
 - The published release APK is signed with the **CI debug keystore** (no signing secret is stored in this repo), so it installs and runs but is not Play-Store ready as-is — see [§14](#14-build-from-source).
-- No instrumented (device) UI tests: CI has no emulator. Coverage is 22 JVM unit tests plus a real compile of both build types.
+- No instrumented (device) UI tests: CI has no emulator. Coverage is 29 JVM unit tests plus a real compile of both build types.
 - The APKs have not been executed on physical hardware by the author of this branch — they are produced and verified by CI (compile, unit tests, credential scan, packaging), not by manual on-device QA.
 - Widgets, icon packs, folders, and a desktop grid you can arrange freely are not implemented.
-- Voice input is not implemented; the assist gesture opens the chat but you type.
 - Gemini streaming depends on the model supporting SSE; the client falls back to a single response otherwise.
 
 <div dir="rtl">
@@ -676,9 +690,9 @@ straight through. Details: [`proxy/README.md`](proxy/README.md) · code: [`proxy
 ### ۱۹. محدودیت‌های شناخته‌شده
 
 نسخه release با کلید debug مربوط به CI امضا شده است · تست UI روی دستگاه واقعی انجام نشده چون CI
-شبیه‌ساز ندارد؛ پوشش شامل ۲۲ تست واحد و کامپایل کامل هر دو نوع بیلد است · APKها روی گوشی فیزیکی
+شبیه‌ساز ندارد؛ پوشش شامل ۲۹ تست واحد و کامپایل کامل هر دو نوع بیلد است · APKها روی گوشی فیزیکی
 توسط نویسنده این شاخه اجرا نشده‌اند و صحت آن‌ها از طریق CI تأیید شده است · ویجت، آیکن‌پک، پوشه و
-چیدمان آزاد دسکتاپ پیاده‌سازی نشده · ورودی صوتی وجود ندارد.
+چیدمان آزاد دسکتاپ پیاده‌سازی نشده.
 
 </div>
 

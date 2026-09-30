@@ -1,6 +1,5 @@
 package com.dlck.lnch.ui.apps
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,6 +52,7 @@ import com.dlck.lnch.data.apps.AppInfo
 import com.dlck.lnch.data.prefs.DrawerSort
 import com.dlck.lnch.ui.LauncherViewModel
 import com.dlck.lnch.ui.components.AppTile
+import com.dlck.lnch.ui.components.AuroraBackground
 import com.dlck.lnch.ui.components.EmptyState
 
 @Composable
@@ -76,10 +76,16 @@ fun AppDrawerScreen(
         viewModel.drawerApps(query, category, settings.drawerSort)
     }
 
+    Box(modifier = modifier.fillMaxSize()) {
+    AuroraBackground(
+        animated = settings.animationsEnabled,
+        dim = 0.93f,
+        intensity = 0.6f,
+    )
+
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.97f))
             .statusBarsPadding(),
     ) {
         OutlinedTextField(
@@ -208,6 +214,7 @@ fun AppDrawerScreen(
                 }
             }
         }
+    }
     }
 }
 

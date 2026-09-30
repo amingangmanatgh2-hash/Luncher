@@ -28,10 +28,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,6 +41,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -50,6 +52,9 @@ import com.dlck.lnch.R
 import com.dlck.lnch.data.apps.AppInfo
 import com.dlck.lnch.ui.LauncherViewModel
 import com.dlck.lnch.ui.components.AppTile
+import com.dlck.lnch.ui.components.AuroraBackground
+import com.dlck.lnch.ui.components.GlassSurface
+import com.dlck.lnch.ui.components.accentGradient
 
 /**
  * The home screen.
@@ -76,11 +81,11 @@ fun HomeScreen(
 
     val contentColor = Color.White
     val dragTotal = remember { mutableFloatStateOf(0f) }
+    val haptics = LocalHapticFeedback.current
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = settings.backgroundDim))
             .pointerInput(Unit) {
                 detectVerticalDragGestures(
                     onDragStart = { dragTotal.floatValue = 0f },
@@ -93,9 +98,24 @@ fun HomeScreen(
                 ) { _, dragAmount -> dragTotal.floatValue += dragAmount }
             }
             .pointerInput(Unit) {
-                detectTapGestures(onLongPress = { onHomeLongPress() })
+                detectTapGestures(
+                    onLongPress = {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onHomeLongPress()
+                    },
+                    // Double-tapping empty space is the fastest way into the assistant.
+                    onDoubleTap = {
+                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onOpenChat()
+                    },
+                )
             },
     ) {
+        AuroraBackground(
+            animated = settings.animationsEnabled,
+            dim = settings.backgroundDim,
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -188,6 +208,7 @@ fun HomeScreen(
             if (settings.showSearchBar) {
                 HomeSearchBar(
                     onSearchClick = onOpenSearch,
+                    onDrawerClick = onOpenDrawer,
                     onAiClick = onOpenChat,
                 )
             }
@@ -206,18 +227,18 @@ fun HomeScreen(
 @Composable
 private fun HomeSearchBar(
     onSearchClick: () -> Unit,
+    onDrawerClick: () -> Unit,
     onAiClick: () -> Unit,
 ) {
-    Surface(
+    GlassSurface(
         shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(28.dp))
             .clickable(onClick = onSearchClick),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
+            modifier = Modifier.padding(start = 18.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -232,14 +253,35 @@ private fun HomeSearchBar(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
             )
-            Icon(
-                imageVector = Icons.Filled.AutoAwesome,
-                contentDescription = stringResource(R.string.ai_title),
-                tint = MaterialTheme.colorScheme.primary,
+            Box(
                 modifier = Modifier
-                    .size(24.dp)
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable(onClick = onDrawerClick),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Apps,
+                    contentDescription = stringResource(R.string.drawer_title),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(accentGradient())
                     .clickable(onClick = onAiClick),
-            )
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.AutoAwesome,
+                    contentDescription = stringResource(R.string.ai_title),
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
         }
     }
 }

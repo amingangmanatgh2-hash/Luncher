@@ -1,38 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  DLCK LNCH mark: a bold "D" monogram cut out of a cyan→violet gradient, with an AI spark
+  orbiting the top-right corner and the launcher grid implied by three dots below.
+  Everything stays inside the adaptive-icon safe zone (21..87 of the 108 viewport).
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Rounded "spark" mark: an AI star over a launcher grid -->
-    <group android:translateX="0" android:translateY="0">
-        <!-- grid dots -->
-        <path
-            android:fillColor="#7DD3FC"
-            android:pathData="M34,66 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
-        <path
-            android:fillColor="#7DD3FC"
-            android:pathData="M54,66 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
-        <path
-            android:fillColor="#7DD3FC"
-            android:pathData="M74,66 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
-        <path
-            android:fillColor="#38BDF8"
-            android:pathData="M34,78 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
-        <path
-            android:fillColor="#38BDF8"
-            android:pathData="M54,78 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
-        <path
-            android:fillColor="#38BDF8"
-            android:pathData="M74,78 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
+    <!-- soft halo behind the monogram -->
+    <path android:pathData="M54,54 m-34,0 a34,34 0 1,0 68,0 a34,34 0 1,0 -68,0">
+        <aapt:attr xmlns:aapt="http://schemas.android.com/aapt" name="android:fillColor">
+            <gradient
+                android:centerX="54"
+                android:centerY="54"
+                android:gradientRadius="34"
+                android:type="radial">
+                <item android:offset="0" android:color="#3322D3EE" />
+                <item android:offset="1" android:color="#0022D3EE" />
+            </gradient>
+        </aapt:attr>
+    </path>
 
-        <!-- AI spark -->
-        <path
-            android:fillColor="#E0F2FE"
-            android:pathData="M54,20 L59.5,38.5 L78,44 L59.5,49.5 L54,68 L48.5,49.5 L30,44 L48.5,38.5 Z" />
-        <path
-            android:fillColor="#FDE68A"
-            android:pathData="M78,22 L80.5,29.5 L88,32 L80.5,34.5 L78,42 L75.5,34.5 L68,32 L75.5,29.5 Z" />
-    </group>
+    <!-- the D, with its counter knocked out via evenOdd -->
+    <path
+        android:fillType="evenOdd"
+        android:pathData="M34,30 L56,30 C72,30 83,40 83,52 C83,64 72,74 56,74 L34,74 Z M47,41 L47,63 L56,63 C64,63 70,58 70,52 C70,46 64,41 56,41 Z">
+        <aapt:attr xmlns:aapt="http://schemas.android.com/aapt" name="android:fillColor">
+            <gradient
+                android:startX="34"
+                android:startY="30"
+                android:endX="83"
+                android:endY="74"
+                android:type="linear">
+                <item android:offset="0" android:color="#FF22D3EE" />
+                <item android:offset="0.55" android:color="#FF60A5FA" />
+                <item android:offset="1" android:color="#FFA78BFA" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- AI spark -->
+    <path
+        android:fillColor="#FFE0F2FE"
+        android:pathData="M79,23 L81.4,29.6 L88,32 L81.4,34.4 L79,41 L76.6,34.4 L70,32 L76.6,29.6 Z" />
+    <path
+        android:fillColor="#FFFDE68A"
+        android:pathData="M68,44 L69.2,47.3 L72.5,48.5 L69.2,49.7 L68,53 L66.8,49.7 L63.5,48.5 L66.8,47.3 Z" />
+
+    <!-- launcher grid dots -->
+    <path android:fillColor="#FF7DD3FC" android:pathData="M38,83 m-3.2,0 a3.2,3.2 0 1,0 6.4,0 a3.2,3.2 0 1,0 -6.4,0" />
+    <path android:fillColor="#FF60A5FA" android:pathData="M54,83 m-3.2,0 a3.2,3.2 0 1,0 6.4,0 a3.2,3.2 0 1,0 -6.4,0" />
+    <path android:fillColor="#FFA78BFA" android:pathData="M70,83 m-3.2,0 a3.2,3.2 0 1,0 6.4,0 a3.2,3.2 0 1,0 -6.4,0" />
 </vector>

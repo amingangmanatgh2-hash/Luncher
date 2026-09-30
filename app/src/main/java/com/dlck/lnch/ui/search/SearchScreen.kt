@@ -1,8 +1,8 @@
 package com.dlck.lnch.ui.search
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -45,6 +45,7 @@ import com.dlck.lnch.R
 import com.dlck.lnch.ai.intent.AppMatcher
 import com.dlck.lnch.data.apps.AppInfo
 import com.dlck.lnch.ui.LauncherViewModel
+import com.dlck.lnch.ui.components.AuroraBackground
 import com.dlck.lnch.ui.components.AppIconImage
 
 /**
@@ -60,6 +61,7 @@ fun SearchScreen(
     modifier: Modifier = Modifier,
 ) {
     val apps by viewModel.visibleApps.collectAsStateWithLifecycle()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
     var query by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
@@ -72,10 +74,16 @@ fun SearchScreen(
         runCatching { focusRequester.requestFocus() }
     }
 
+    Box(modifier = modifier.fillMaxSize()) {
+    AuroraBackground(
+        animated = settings.animationsEnabled,
+        dim = 0.93f,
+        intensity = 0.6f,
+    )
+
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.97f))
             .statusBarsPadding()
             .imePadding(),
     ) {
@@ -164,6 +172,7 @@ fun SearchScreen(
                 }
             }
         }
+    }
     }
 }
 

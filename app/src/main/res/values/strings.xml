@@ -111,6 +111,7 @@
     <string name="ai_title">AI Assistant</string>
     <string name="ai_input_hint">Ask anything, or tell me what to open…</string>
     <string name="ai_send">Send</string>
+    <string name="ai_voice_input">Speak instead of typing</string>
     <string name="ai_clear">Clear chat</string>
     <string name="ai_thinking">Thinking…</string>
     <string name="ai_typing">Assistant is typing…</string>

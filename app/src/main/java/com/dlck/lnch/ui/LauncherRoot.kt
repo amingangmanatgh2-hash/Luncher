@@ -4,9 +4,13 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
@@ -84,14 +88,28 @@ fun LauncherRoot(viewModel: LauncherViewModel) {
                     EnterTransition.None togetherWith ExitTransition.None
                 } else {
                     val forward = targetState !is Screen.Home
+                    // Spring-driven depth transition: the incoming screen rises and settles,
+                    // the outgoing one sinks slightly — reads as layers, not slides.
+                    val motion = spring<Float>(
+                        dampingRatio = Spring.DampingRatioLowBouncy,
+                        stiffness = Spring.StiffnessMediumLow,
+                    )
                     (
-                        slideInVertically(animationSpec = tween(220)) { height ->
-                            if (forward) height / 6 else -height / 6
-                        } + fadeIn(animationSpec = tween(180))
-                        ) togetherWith fadeOut(animationSpec = tween(140)) +
-                        slideOutVertically(animationSpec = tween(220)) { height ->
-                            if (forward) -height / 12 else height / 12
-                        }
+                        slideInVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                stiffness = Spring.StiffnessMediumLow,
+                            ),
+                        ) { height -> if (forward) height / 5 else -height / 5 } +
+                            fadeIn(animationSpec = tween(200)) +
+                            scaleIn(initialScale = 0.94f, animationSpec = motion)
+                        ) togetherWith (
+                        fadeOut(animationSpec = tween(150)) +
+                            scaleOut(targetScale = 0.97f, animationSpec = tween(180)) +
+                            slideOutVertically(animationSpec = tween(200)) { height ->
+                                if (forward) -height / 14 else height / 14
+                            }
+                        )
                 }
             },
             label = "screen",

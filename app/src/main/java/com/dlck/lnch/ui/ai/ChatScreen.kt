@@ -1,6 +1,5 @@
 package com.dlck.lnch.ui.ai
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +24,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -45,6 +45,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringResource
@@ -53,7 +55,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlck.lnch.R
 import com.dlck.lnch.ai.intent.IntentExecutor
+import com.dlck.lnch.ui.components.AuroraBackground
 import com.dlck.lnch.ui.components.EmptyState
+import com.dlck.lnch.ui.components.MarkdownText
 import com.dlck.lnch.ui.components.ScreenHeader
 import com.dlck.lnch.ui.components.TypingIndicator
 import kotlinx.coroutines.flow.collectLatest
@@ -72,6 +76,13 @@ fun ChatScreen(
     var input by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     val clipboard = LocalClipboardManager.current
+    val haptics = LocalHapticFeedback.current
+
+    // Dictation is delegated to the system recogniser; the transcript lands in the field so the
+    // user can edit it before sending. No RECORD_AUDIO permission, no audio ever leaves via us.
+    val voice = rememberVoiceInput { spoken ->
+        input = if (input.isBlank()) spoken else "$input $spoken"
+    }
 
     LaunchedEffect(Unit) {
         viewModel.refreshConfiguration()
@@ -88,10 +99,12 @@ fun ChatScreen(
         }
     }
 
+    Box(modifier = modifier.fillMaxSize()) {
+    AuroraBackground(animated = animationsEnabled, dim = 0.93f, intensity = 0.7f)
+
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.97f))
             .statusBarsPadding()
             .imePadding(),
     ) {
@@ -198,6 +211,21 @@ fun ChatScreen(
                     maxLines = 4,
                     shape = RoundedCornerShape(22.dp),
                 )
+                if (voice.available && !state.busy) {
+                    IconButton(
+                        onClick = {
+                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            voice.launch()
+                        },
+                        modifier = Modifier.size(48.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.Mic,
+                            contentDescription = stringResource(R.string.ai_voice_input),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
                 if (state.busy) {
                     IconButton(
                         onClick = viewModel::stop,
@@ -224,6 +252,7 @@ fun ChatScreen(
                 }
             }
         }
+    }
     }
 }
 
@@ -295,11 +324,16 @@ private fun MessageBubble(
         ) {
             Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
                 if (message.text.isNotEmpty()) {
-                    Text(
-                        text = message.text,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = textColor,
-                    )
+                    if (isUser) {
+                        Text(
+                            text = message.text,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = textColor,
+                        )
+                    } else {
+                        // Models answer with **bold**, `code` and "- " bullets — render them.
+                        MarkdownText(text = message.text, color = textColor)
+                    }
                 }
                 if (message.streaming) {
                     Spacer(Modifier.height(6.dp))

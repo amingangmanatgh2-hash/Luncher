@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Themed-icon (Android 13+) silhouette: same mark, single flat colour so the system can tint it
+  with the user's wallpaper palette. Gradients are not allowed here — they would defeat theming.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108"
+    android:tint="#FFFFFFFF">
+
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M34,30 L56,30 C72,30 83,40 83,52 C83,64 72,74 56,74 L34,74 Z M47,41 L47,63 L56,63 C64,63 70,58 70,52 C70,46 64,41 56,41 Z" />
+
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M79,23 L81.4,29.6 L88,32 L81.4,34.4 L79,41 L76.6,34.4 L70,32 L76.6,29.6 Z" />
+
+    <path android:fillColor="#FFFFFFFF" android:pathData="M38,83 m-3.2,0 a3.2,3.2 0 1,0 6.4,0 a3.2,3.2 0 1,0 -6.4,0" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M54,83 m-3.2,0 a3.2,3.2 0 1,0 6.4,0 a3.2,3.2 0 1,0 -6.4,0" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M70,83 m-3.2,0 a3.2,3.2 0 1,0 6.4,0 a3.2,3.2 0 1,0 -6.4,0" />
+</vector>
