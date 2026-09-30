@@ -133,16 +133,28 @@ def text_at(d, xy, s, f, fill, anchor="la", persian=False):
     d.text(xy, fa(s) if persian else s, font=f, fill=fill, anchor=anchor)
 
 
+# Drifting aurora blobs, mirroring the launcher's own AuroraBackground composable.
+AURORA = [
+    (PRIMARY_DIM, 0.18, 0.14, 0.62, 0.085, 1.00, 0.90),
+    (VIOLET, 0.86, 0.30, 0.52, 0.055, 1.30, 0.70),
+    (PRIMARY, 0.50, 0.92, 0.70, 0.045, 0.60, 1.10),
+]
+
+
 def background(d: ImageDraw.ImageDraw, t: float):
     d.rectangle([0, 0, W, H], fill=BG)
-    # slow ambient glow
-    for i in range(6):
-        r = 190 + i * 46 + math.sin(t * 0.7 + i) * 9
-        a = 0.055 - i * 0.008
-        if a <= 0:
-            continue
-        cx, cy = 1075, 150
-        d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=blend(PRIMARY_DIM, a))
+    for color, bx, by, br, alpha, fx, fy in AURORA:
+        cx = (bx + 0.05 * math.cos(t * 0.22 * fx)) * W
+        cy = (by + 0.04 * math.sin(t * 0.19 * fy)) * H
+        radius = br * W
+        # concentric rings approximate a soft radial gradient cheaply
+        for i in range(14):
+            k = 1 - i / 14
+            r = radius * k
+            a = alpha * (1 - k) * 0.55
+            if a <= 0.002 or r <= 2:
+                continue
+            d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=blend(color, a))
 
 
 STEP_LABELS = [
@@ -564,6 +576,73 @@ def slide_assistant(d, t, dur):
     flow_bar(d, 5, t)
 
 
+def slide_polish(d, t, dur):
+    background(d, t)
+    header(d, "چیزهایی که حالش را عوض می‌کند", "POLISH", t)
+
+    features = [
+        ("Aurora", "پس‌زمینه شفق متحرک روی والپیپر", PRIMARY),
+        ("Glass", "پنل‌های شیشه‌ای با لبه گرادیانی", VIOLET),
+        ("Spring", "انیمیشن فنری و بازخورد لمسی", (94, 234, 212)),
+        ("Voice", "دیکته با موتور گفتار خود گوشی", GREEN),
+        ("Markdown", "نمایش درست bold و code در پاسخ‌ها", AMBER),
+        ("Themed icon", "آیکن هماهنگ با رنگ والپیپر", (244, 114, 182)),
+    ]
+
+    for i, (title, desc, col) in enumerate(features):
+        def draw(alpha, off, i=i, title=title, desc=desc, col=col):
+            x = 70 + (i % 2) * 330
+            y = 180 + (i // 2) * 118 + off
+            rounded(d, [x, y, x + 300, y + 96], 16, fill=blend(SURFACE, alpha),
+                    outline=blend(col, alpha * 0.7), width=2)
+            d.ellipse([x + 18, y + 20, x + 38, y + 40], fill=blend(col, alpha))
+            text_at(d, (x + 50, y + 20), title, font(19, "Bold"), blend(TEXT, alpha))
+            text_at(d, (x + 282, y + 56), desc, font(15), blend(MUTED, alpha),
+                    anchor="ra", persian=True)
+        fade_in(draw, t, 0.25 + i * 0.42)
+
+    # phone mock with the microphone button pulsing
+    px, py, pw = phone(d, 790, 130, w=300, h=520)
+
+    def chat(alpha, off):
+        text_at(d, (px + pw / 2, py + 6 + off), "AI Assistant", font(16, "Bold"),
+                blend(TEXT, alpha), anchor="ma")
+        rounded(d, [px + 50, py + 46 + off, px + pw, py + 90 + off], 14,
+                fill=blend(PRIMARY_DIM, alpha))
+        text_at(d, (px + pw - 12, py + 58 + off), "تایمر ده دقیقه‌ای بذار", font(14),
+                blend(TEXT, alpha), anchor="ra", persian=True)
+        rounded(d, [px, py + 104 + off, px + pw - 55, py + 168 + off], 14,
+                fill=blend(SURFACE_2, alpha))
+        text_at(d, (px + pw - 67, py + 116 + off), "تایمر ۱۰ دقیقه", font(14, "Bold"),
+                blend(TEXT, alpha), anchor="ra", persian=True)
+        text_at(d, (px + pw - 67, py + 140 + off), "CREATE_TIMER", font(13),
+                blend(PRIMARY, alpha), anchor="ra")
+    fade_in(chat, t, 1.0)
+
+    # input bar with mic
+    def bar(alpha, off):
+        y = py + 400 + off
+        rounded(d, [px, y, px + pw - 58, y + 44], 22, fill=blend(SURFACE_2, alpha))
+        text_at(d, (px + pw - 72, y + 13), "پیام بنویسید…", font(13),
+                blend(MUTED, alpha), anchor="ra", persian=True)
+    fade_in(bar, t, 2.0)
+
+    if t > 2.6:
+        pulse = (math.sin((t - 2.6) * 5) + 1) / 2
+        cx, cy = px + pw - 26, py + 422
+        r = 20 + pulse * 5
+        d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=blend(GREEN, 0.20 + pulse * 0.12))
+        d.ellipse([cx - 17, cy - 17, cx + 17, cy + 17], fill=GREEN)
+        # microphone glyph
+        d.rounded_rectangle([cx - 4, cy - 9, cx + 4, cy + 2], radius=4, fill=(6, 22, 14))
+        d.arc([cx - 8, cy - 5, cx + 8, cy + 7], 0, 180, fill=(6, 22, 14), width=2)
+        d.line([cx, cy + 7, cx, cy + 11], fill=(6, 22, 14), width=2)
+        text_at(d, (cx, cy + 26), "بدون مجوز میکروفون", font(12), blend(GREEN, 0.9),
+                anchor="ma", persian=True)
+
+    flow_bar(d, 5, t)
+
+
 SLIDES = [
     ("01_intro.mp3", slide_intro),
     ("02_key.mp3", slide_create_key),
@@ -572,6 +651,7 @@ SLIDES = [
     ("05_test.mp3", slide_test),
     ("06_install.mp3", slide_install),
     ("07_assistant.mp3", slide_assistant),
+    ("08_polish.mp3", slide_polish),
 ]
 
 

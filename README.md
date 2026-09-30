@@ -578,7 +578,7 @@ push اجرا می‌شود: اسکن رمز → تست‌ها → ساخت debu
 
 ### 🎬 [`docs/video/dlck-lnch-setup-tutorial.mp4`](docs/video/dlck-lnch-setup-tutorial.mp4)
 
-**2 min 38 s · 1280×720 · H.264 + AAC · 3.8 MB · Persian narration**
+**3 min 01 s · 1280×720 · H.264 + AAC · 4.8 MB · Persian narration**
 
 </div>
 
@@ -594,13 +594,14 @@ push اجرا می‌شود: اسکن رمز → تست‌ها → ساخت debu
 
 | # | Scene | Length |
 |---|---|---|
-| 1 | Title + the six-step pipeline | 24.7 s |
-| 2 | Creating the key in Google AI Studio | 22.2 s |
-| 3 | Where the key is stored (and where it never goes) | 22.2 s |
-| 4 | Saving the key in AI Setup | 20.7 s |
-| 5 | Test connection + what each error means | 23.1 s |
-| 6 | Installing and selecting the launcher | 22.3 s |
-| 7 | Talking to the assistant + the 7 intents | 23.4 s |
+| 1 | Title + the six-step pipeline | 24.5 s |
+| 2 | Creating the key in Google AI Studio | 21.6 s |
+| 3 | Where the key is stored (and where it never goes) | 24.9 s |
+| 4 | Saving the key in AI Setup | 22.2 s |
+| 5 | Test connection + what each error means | 21.0 s |
+| 6 | Installing and selecting the launcher | 23.4 s |
+| 7 | Talking to the assistant + the 7 intents | 20.3 s |
+| 8 | The polish: aurora, glass, springs, voice input, themed icon | 23.1 s |
 
 Full script, scene table and regeneration instructions: [`docs/VIDEO_SCRIPT.md`](docs/VIDEO_SCRIPT.md).
 
@@ -608,7 +609,7 @@ Full script, scene table and regeneration instructions: [`docs/VIDEO_SCRIPT.md`]
 
 ### ۱۶. آموزش ویدیویی
 
-فایل ویدیو: `docs/video/dlck-lnch-setup-tutorial.mp4` — مدت ۲ دقیقه و ۳۸ ثانیه، با گویندگی فارسی.
+فایل ویدیو: `docs/video/dlck-lnch-setup-tutorial.mp4` — مدت ۳ دقیقه و ۱ ثانیه، در ۸ صحنه، با گویندگی فارسی.
 
 **این ویدیو یک «راهنمای انیمیشنی» است** که تمام فریم‌های آن به‌صورت برنامه‌نویسی‌شده تولید شده و
 گویندگی آن با تبدیل متن به گفتار ساخته شده است. این ویدیو **ضبط صفحه یک گوشی واقعی نیست** و
