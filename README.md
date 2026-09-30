@@ -92,6 +92,12 @@ DLCK LNCH جایگزین صفحه اصلی گوشی شما می‌شود: ساع
 - **A–Z fast scroll** — a letter rail on the drawer edge (English *and* Persian آ–ی, with `#` for digits/symbols); tap or drag to jump, with haptic ticks.
 - **App shortcuts** — long-press an icon to get the app's own shortcuts ("New message", "Scan QR"…) straight from the system `LauncherApps` API, available once DLCK LNCH is your default home app.
 - **Hidden-apps manager** — Settings lists everything you hid and brings it back with one tap, so hiding is never a one-way door.
+- **Home-screen widgets** — a real `AppWidgetHost`: pick any widget installed on the device, run its own configuration activity, resize it (long-press → height stepper) and remove it. Widget ids are released back to the system on removal, and dead providers are pruned automatically.
+- **Folders** — group apps into named folders with a 2×2 preview tile on the home screen. Long-press → *Move to folder…*, rename or delete from the folder itself, and an app always lives in exactly one folder. Uninstalling an app cleans the folder up for you.
+- **Icon packs** — pick any of the thousands of existing Android icon packs (ADW / Nova / Go / Apex format). DLCK LNCH reads the pack's `appfilter.xml` and resources; anything a pack does not theme falls back to the stock icon, so a partial pack still looks complete.
+- **Notification dots** — optional unread counters on icons, powered by a notification listener you enable yourself in system settings.
+- **Backup & restore** — export layout, favourites, pins, hidden apps, folders and usage stats to a JSON file through the system file picker, and restore it on another device. The Gemini key is **never** part of a backup.
+- **Custom gestures** — swipe up, swipe down and double-tap can each be assigned to App drawer / Search / Assistant / Settings / Wallpaper / AI Setup / nothing.
 
 ### Interface
 - **Living aurora background** — soft colour blobs drift slowly over your wallpaper (translucent, never hides it) and freeze instantly when animations are off.
@@ -126,6 +132,12 @@ DLCK LNCH جایگزین صفحه اصلی گوشی شما می‌شود: ساع
 اینترنت · **ماشین‌حساب داخل جستجو** (`۱۲×۷+۳`) با ارقام فارسی و کپی با یک لمس · **نوار حروف الفبا**
 کنار لیست برنامه‌ها برای پرش سریع (آ تا ی و A تا Z) · **میان‌برهای برنامه‌ها** با نگه‌داشتن آیکن ·
 **مدیریت برنامه‌های پنهان** در تنظیمات برای بازگرداندن آن‌ها.
+
+**لانچر کامل:** **ویجت‌های واقعی صفحه اصلی** (افزودن، پیکربندی، تغییر اندازه، حذف با `AppWidgetHost`) ·
+**پوشه‌ها** با پیش‌نمایش ۲×۲، تغییر نام و حذف · پشتیبانی از **بسته‌های آیکن** (فرمت استاندارد
+`appfilter.xml`، سازگار با هزاران بستهٔ موجود) · **نشانگر اعلان** روی آیکن‌ها (اختیاری، فقط تعداد) ·
+**پشتیبان‌گیری و بازیابی** کل چیدمان در قالب JSON (بدون کلید API) · **ژست‌های قابل تنظیم** برای
+کشیدن به بالا، پایین و دو بار ضربه.
 
 **رابط کاربری:** متریال ۳ با رنگ پویا در اندروید ۱۲ به بالا، شش رنگ تأکیدی، حالت روشن/تیره/سیستم،
 **راست‌چین کامل فارسی**، تغییر زبان برنامه بدون تغییر زبان گوشی، و امکان خاموش کردن کامل انیمیشن‌ها.
@@ -171,7 +183,7 @@ Google AI Studio گرفته می‌شود. برای ساخت از سورس: JDK 
 
 | Asset | Size | Notes |
 |---|---|---|
-| `dlck-lnch-1.0.0-debug.apk` | 18.7 MB | debuggable, no shrinking — the easy choice |
+| `dlck-lnch-1.0.0-debug.apk` | 18.9 MB | debuggable, no shrinking — the easy choice |
 | `dlck-lnch-1.0.0-release.apk` | 2.5 MB | R8 minified + resource shrinking, signed with the CI **debug** key |
 
 1. Download the APK to the phone.
@@ -441,11 +453,15 @@ Uninstalling the app destroys the encrypted store, and with it the key.
 | `ACCESS_NETWORK_STATE` | show a proper "offline" state instead of a timeout | no |
 | `SET_WALLPAPER` | the wallpaper shortcut in the home long-press menu | no |
 | `PACKAGE_USAGE_STATS` | more accurate "recently used" ordering | **optional** — never requested automatically; the section works from the launcher's own history without it |
-| `<queries>` (not a permission) | list launchable activities without `QUERY_ALL_PACKAGES` | — |
+| `<queries>` (not a permission) | list launchable activities, speech recognisers and icon packs without `QUERY_ALL_PACKAGES` | — |
+| Notification access (special access, not a manifest permission) | the unread dots on icons | **optional** — you grant it yourself in system settings; only the *number* of notifications per app is read, never their content, and nothing is stored or sent |
 
-Not requested: contacts, location, camera, **microphone**, storage, SMS, phone, notifications.
+Not requested: contacts, location, camera, **microphone**, storage, SMS, phone.
 Voice input works *without* `RECORD_AUDIO` because dictation is delegated to the system recogniser
 through `ACTION_RECOGNIZE_SPEECH` — DLCK LNCH only receives the final transcript.
+Widgets work *without* the privileged `BIND_APPWIDGET` permission: binding goes through the system
+consent dialog (`ACTION_APPWIDGET_BIND`). Backup/restore works *without* any storage permission
+because the file is chosen by you in the system picker (Storage Access Framework).
 Every one of these is explained in-app on the Settings screen next to the toggle that needs it.
 
 <div dir="rtl">
@@ -515,7 +531,7 @@ git clone https://github.com/amingangmanatgh2-hash/Luncher.git
 cd Luncher
 git checkout arena/01a0ed54-luncher
 
-./gradlew testDebugUnitTest      # 52 JVM unit tests
+./gradlew testDebugUnitTest      # 76 JVM unit tests
 ./gradlew assembleDebug          # app/build/outputs/apk/debug/
 ./gradlew assembleRelease        # app/build/outputs/apk/release/
 ```
@@ -551,7 +567,7 @@ contains **no** signing secret.
 
 ## 15. Tests & CI
 
-**52 JVM unit tests** (`app/src/test/java/com/dlck/lnch/`):
+**76 JVM unit tests** (`app/src/test/java/com/dlck/lnch/`):
 
 | File | Covers |
 |---|---|
@@ -562,6 +578,9 @@ contains **no** signing secret.
 | `CalculatorTest.kt` (7) | precedence, right-associative `^`, unary minus, Persian digits/separators, division by zero, and *not* treating "maps" or "42" as maths |
 | `SuggesterTest.kt` (9) | hour-of-day ranking beats raw popularity, neighbour hours at half weight, recency tiebreak, midnight wrap, legacy stats without a histogram, hour-bucket recording |
 | `AlphabetIndexTest.kt` (7) | section indices, `#` bucket, Arabic→Persian letter folding, unsorted lists, touch-offset clamping |
+| `FolderOpsTest.kt` (9) | unique ids, one folder per app, no duplicates, pruning uninstalled apps, name sanitising |
+| `IconPackParserTest.kt` (7) | `appfilter.xml` parsing, `.Relative` activity shorthand, malformed entries skipped, package-level fallback |
+| `BackupCodecTest.kt` (8) | settings + state round-trip, clamping, unknown fields, foreign files rejected, **no credential in the export** |
 
 **CI** ([`.github/workflows/build-apk.yml`](.github/workflows/build-apk.yml)) on every push to the working branch:
 
@@ -694,7 +713,7 @@ straight through. Details: [`proxy/README.md`](proxy/README.md) · code: [`proxy
 ## 19. Known limitations
 
 - The published release APK is signed with the **CI debug keystore** (no signing secret is stored in this repo), so it installs and runs but is not Play-Store ready as-is — see [§14](#14-build-from-source).
-- No instrumented (device) UI tests: CI has no emulator. Coverage is 52 JVM unit tests plus a real compile of both build types.
+- No instrumented (device) UI tests: CI has no emulator. Coverage is 76 JVM unit tests plus a real compile of both build types.
 - The APKs have not been executed on physical hardware by the author of this branch — they are produced and verified by CI (compile, unit tests, credential scan, packaging), not by manual on-device QA.
 - Widgets, icon packs, folders, and a desktop grid you can arrange freely are not implemented.
 - Gemini streaming depends on the model supporting SSE; the client falls back to a single response otherwise.

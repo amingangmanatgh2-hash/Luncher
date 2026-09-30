@@ -44,7 +44,7 @@
 | **Debug build** | `dlck-lnch-1.0.0-debug.apk` — 18.7 MB, easiest to install, includes debug symbols |
 | **Release build** | `dlck-lnch-1.0.0-release.apk` — 2.5 MB, minified + resource-shrunk, signed with the CI debug key |
 
-Both are attached to the GitHub Release: **<https://github.com/amingangmanatgh2-hash/Luncher/releases/tag/v1.0.0-build.8>**
+Both are attached to the GitHub Release: **<https://github.com/amingangmanatgh2-hash/Luncher/releases/tag/v1.0.0-build.11>**
 
 1. Download one APK onto the phone (Android 8.0 / API 26 or newer).
 2. Open it from the notification or from Files.
