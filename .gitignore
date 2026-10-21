@@ -1,0 +1,19 @@
+node_modules/
+.wrangler/
+.dev.vars
+*.log
+.DS_Store
+.state/
+dist/
+coverage/
+
+# Android (built by .github/workflows/android.yml, never committed)
+.gradle/
+app/build/
+build/
+local.properties
+*.keystore
+*.jks
+captures/
+.idea/
+*.iml

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#FF05060A</color>
+    <color name="surface">#FF0F121A</color>
+    <color name="surface_alt">#FF151926</color>
+    <color name="border">#FF23263A</color>
+    <color name="ember">#FFFFA94D</color>
+    <color name="ember_deep">#FFFF8B3D</color>
+    <color name="coral">#FFFF6B6B</color>
+    <color name="teal">#FF40E0D0</color>
+    <color name="ok">#FF4ADE80</color>
+    <color name="warn">#FFFBBF24</color>
+    <color name="danger">#FFF87171</color>
+    <color name="text">#FFE8EAF2</color>
+    <color name="muted">#FF9AA2BD</color>
+    <color name="faint">#FF626A86</color>
+    <color name="ic_launcher_background">#FF0B0D14</color>
+</resources>

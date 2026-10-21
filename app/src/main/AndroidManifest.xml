@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Needed to fetch subscriptions and to run the net-melli reachability probe. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Luncher">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Accept a shared config link from any app (browser, Telegram, the
+                 Luncher panel). This is how a user gets a vless:// or trojan://
+                 link into the companion without retyping it. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
+            <!-- Luncher's own scheme, used by the panel's "Open in app" button.
+                 We deliberately do NOT register vless:// or trojan:// here: those
+                 belong to the tunnel clients (PattNG, v2rayNG, Hiddify). Claiming
+                 them would make Android offer this app as a tunnel client, and it
+                 is a manager, not a proxy — it would accept the connection and do
+                 nothing, which is far worse than not appearing in the chooser. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="luncher" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

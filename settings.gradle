@@ -1,0 +1,31 @@
+// Luncher Companion — Android config manager.
+//
+// Deliberately dependency-light: every artifact below is a standard AndroidX /
+// Material / Kotlin release that resolves from Google's and Maven Central's
+// public repositories. No annotation processors, no Compose compiler coupling,
+// no native modules — those are the usual reasons a CI Android build breaks in
+// ways nobody can debug from a log.
+pluginManagement {
+    repositories {
+        google {
+            content {
+                includeGroupByRegex("com\\.android.*")
+                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("androidx.*")
+            }
+        }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "Luncher Companion"
+include ':app'
