@@ -104,7 +104,51 @@ jobs:
         run: gradle wrapper --gradle-version 8.7 --no-daemon
 
       - name: Build
-        run: ./gradlew :app:assembleDebug :app:assembleRelease :app:bundleRelease --no-daemon --stacktrace
+        shell: bash
+        run: |
+          # pipefail matters: without it `tee` would swallow Gradle's exit code
+          # and a failed build would report success.
+          set -o pipefail
+          ./gradlew :app:assembleDebug :app:assembleRelease :app:bundleRelease \
+            --no-daemon --stacktrace 2>&1 | tee build.log
+
+      # The Actions log service is not reachable from every environment (it is
+      # served from a host separate from the GitHub API), so a failed build would
+      # otherwise be undiagnosable from the API alone. Posting the relevant part
+      # of the Gradle log back to the PR keeps the failure readable wherever the
+      # API is readable — and it is useful to humans too.
+      - name: Report a build failure on the pull request
+        if: failure() && github.event_name == 'pull_request'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ ! -s build.log ]; then
+            echo "No build log was produced; the failure happened earlier."
+            exit 0
+          fi
+          {
+            echo "### Android build failed"
+            echo
+            echo "Commit \`${GITHUB_SHA}\` · run [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+            echo
+            echo '```'
+            # Gradle puts the actionable part under "What went wrong" and the
+            # Kotlin compiler reports "e: file:line: message". A full
+            # --stacktrace log is far too large for a comment, so keep those.
+            grep -E "^(FAILURE|\* What went wrong|\* Where|\* Try|e: |> Task .* FAILED|BUILD FAILED|Caused by:|A problem occurred|Execution failed)" build.log | head -n 60 || true
+            echo
+            grep -E "^e: " build.log | head -n 40 || true
+            echo '```'
+            echo
+            echo '<details><summary>last 120 lines</summary>'
+            echo
+            echo '```'
+            tail -n 120 build.log
+            echo '```'
+            echo '</details>'
+          } > failure-comment.md
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file failure-comment.md
 
       - name: Rename artifacts
         run: |
