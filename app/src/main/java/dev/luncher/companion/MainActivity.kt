@@ -219,19 +219,26 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val outcome = withContext(Dispatchers.IO) { fetchSubscription(sub.url) }
             binding.progress.visibility = View.GONE
+            // No `return@...` label here. Kotlin labels a lambda by the name of
+            // the function it is passed to (`fold`), not by the parameter name
+            // (`onSuccess`), so an early return is easy to get wrong — and getting
+            // it wrong is a compile error, not a warning. Plain if/else says the
+            // same thing without the ambiguity.
             outcome.fold(
                 onSuccess = { body ->
                     val links = ConfigStore.extractLinks(body)
                     if (links.isEmpty()) {
                         toast(getString(R.string.sub_failed, "no links in response"))
-                        return@onSuccess
+                    } else {
+                        // Re-key the subscription so its configs are replaced
+                        // rather than accumulating stale entries on every refresh.
+                        ConfigStore.deleteSubscription(this@MainActivity, sub.id)
+                        val kept = ConfigStore.addSubscription(this@MainActivity, sub.name, sub.url)
+                        val n = ConfigStore.addLinks(this@MainActivity, links, kept.id, sub.name)
+                        ConfigStore.touchSubscription(this@MainActivity, kept.id)
+                        toast(getString(R.string.added_many, n))
+                        render()
                     }
-                    ConfigStore.deleteSubscription(this@MainActivity, sub.id)
-                    val kept = ConfigStore.addSubscription(this@MainActivity, sub.name, sub.url)
-                    val n = ConfigStore.addLinks(this@MainActivity, links, kept.id, sub.name)
-                    ConfigStore.touchSubscription(this@MainActivity, kept.id)
-                    toast(getString(R.string.added_many, n))
-                    render()
                 },
                 onFailure = { e ->
                     toast(getString(R.string.sub_failed, e.message ?: e.javaClass.simpleName))
