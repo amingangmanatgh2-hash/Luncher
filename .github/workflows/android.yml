@@ -55,15 +55,15 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      # ubuntu-latest ships the Android SDK, but this accepts the licences and
-      # installs any platform/build-tools version AGP asks for that is missing.
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      # No third-party Android setup step. The ubuntu-latest runner image already
+      # ships the SDK with licences pre-accepted, and AGP downloads any platform
+      # or build-tools version it needs on demand. An extra action here only adds
+      # a network dependency and another way to fail before compiling a line.
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -85,6 +85,20 @@ jobs:
               -dname "CN=Android Debug,O=Android,C=US"
           fi
           ls -l "$HOME/.android/"
+
+      - name: Report the Android SDK
+        run: |
+          echo "ANDROID_HOME=${ANDROID_HOME:-unset}"
+          echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-unset}"
+          SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          if [ -z "$SDK" ] || [ ! -d "$SDK" ]; then
+            echo "::error::No Android SDK found on the runner image."
+            exit 1
+          fi
+          ls "$SDK"
+          test -f "$SDK/licenses/android-sdk-license" || echo "::warning::SDK licences not pre-accepted"
+          java -version
+          gradle --version
 
       - name: Generate the Gradle wrapper
         run: gradle wrapper --gradle-version 8.7 --no-daemon
