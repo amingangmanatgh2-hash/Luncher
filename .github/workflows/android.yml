@@ -186,6 +186,7 @@ jobs:
           name: luncher-companion
           path: dist/
           if-no-files-found: error
+          retention-days: 14
 
       # Only on a version tag, or when a manual run asks for it.
       - name: Publish GitHub Release

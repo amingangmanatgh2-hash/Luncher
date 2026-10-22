@@ -112,6 +112,7 @@ jobs:
           name: luncher-windows
           path: dist/
           if-no-files-found: error
+          retention-days: 7
 
       # Same rationale as the Android workflow: the Actions log service is served
       # from a host separate from the GitHub API, so annotations and a PR comment
