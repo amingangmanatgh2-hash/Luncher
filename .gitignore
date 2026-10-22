@@ -17,3 +17,8 @@ local.properties
 captures/
 .idea/
 *.iml
+
+# .NET (built by .github/workflows/windows.yml, never committed)
+desktop/bin/
+desktop/obj/
+desktop/publish/

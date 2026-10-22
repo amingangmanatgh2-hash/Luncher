@@ -12,17 +12,16 @@
 name: Android
 
 on:
+  # No `paths` filter here on purpose. Under a single `push:` key a paths filter
+  # applies to tag pushes too, and tagging a commit that is already on main can
+  # resolve to "no changed paths" — silently skipping the very release build the
+  # tag exists to trigger. A three-minute build on every push to main is a much
+  # better trade than a release that sometimes does not happen.
   push:
     branches:
       - main
     tags:
       - 'app-v*'
-    paths:
-      - 'app/**'
-      - 'build.gradle'
-      - 'settings.gradle'
-      - 'gradle.properties'
-      - '.github/workflows/android.yml'
   workflow_dispatch:
     inputs:
       publish_release:
