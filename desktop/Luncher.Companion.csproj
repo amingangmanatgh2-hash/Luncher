@@ -16,9 +16,7 @@
     <Description>Config manager and network diagnostician for Luncher panels on Windows.</Description>
     <!-- No ApplicationIcon on purpose: an .ico is a binary blob that cannot be
          authored or reviewed in this repository. Same rule as the Android app. -->
-    <InvariantGlobalization>true</InvariantGlobalization>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-    <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
   </PropertyGroup>
 
 </Project>

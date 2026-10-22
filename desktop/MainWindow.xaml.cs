@@ -201,8 +201,8 @@ public partial class MainWindow : Window
             BorderThickness = new Thickness(0),
             SelectedIndex = 0,
         };
-        var ok = new Button { Content = Strings.Get("K_Ok"), IsDefault = true, Padding = new Thickness(14, 7) };
-        var cancel = new Button { Content = Strings.Get("K_Cancel"), IsCancel = true, Padding = new Thickness(14, 7), Margin = new Thickness(0, 0, 8, 0) };
+        var ok = new Button { Content = Strings.Get("K_Ok"), IsDefault = true, Padding = new Thickness(14, 7, 14, 7) };
+        var cancel = new Button { Content = Strings.Get("K_Cancel"), IsCancel = true, Padding = new Thickness(14, 7, 14, 7), Margin = new Thickness(0, 0, 8, 0) };
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 12, 0, 0) };
         buttons.Children.Add(cancel);
         buttons.Children.Add(ok);
