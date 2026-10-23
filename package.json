@@ -1,7 +1,7 @@
 {
   "name": "luncher",
   "version": "1.0.0",
-  "description": "Luncher — an open, hardened VLESS/Trojan panel that runs entirely on Cloudflare Workers.",
+  "description": "Luncher \u2014 an open, hardened VLESS/Trojan panel that runs entirely on Cloudflare Workers.",
   "type": "module",
   "license": "MIT",
   "private": true,
@@ -11,7 +11,8 @@
     "test": "node --test tests/*.test.js",
     "test:dpi": "node tests/dpi/run.js",
     "db:init": "wrangler d1 execute luncher-db --local --file=./schema.sql",
-    "db:init:remote": "wrangler d1 execute luncher-db --remote --file=./schema.sql"
+    "db:init:remote": "wrangler d1 execute luncher-db --remote --file=./schema.sql",
+    "test:e2e": "node tests/e2e/run.js"
   },
   "devDependencies": {
     "acorn": "^8.19.0",

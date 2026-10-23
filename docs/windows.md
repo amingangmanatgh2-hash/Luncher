@@ -55,6 +55,46 @@ dependencies was the better trade.
 `Luncher-Portable-1.0.0.zip` is the same program without the installer: unzip it
 anywhere and run `Luncher.exe`. Useful if you cannot or do not want to install.
 
+## Automatic updates
+
+The app checks GitHub Releases on startup and, when a newer version exists,
+downloads it, verifies it and installs it silently, then reopens itself.
+
+The button next to the language toggle cycles the mode:
+
+| mode | behaviour |
+|---|---|
+| **auto** (default) | check on startup, download, verify, install, reopen |
+| **notify only** | check on startup, tell you, and wait for you to click |
+| **off** | never check; only the manual button works |
+
+**Check for updates** always checks, whatever the mode is set to.
+
+### What the verification does and does not prove
+
+This is the part worth reading, because it is a real limitation and not one that
+can be engineered away without a paid certificate.
+
+The downloaded installer's SHA-256 is checked against `SHA256SUMS-windows.txt`
+from the same release, and the update is **refused** if that file is missing, if
+it has no entry for the installer, or if the hashes disagree. That proves the
+download arrived intact and was not swapped in transit.
+
+It does **not** prove the release is authentic. Both files are published in the
+same place, so anyone who could write to the release could write to both. And
+because the binary is unsigned, there is no signature to check either. Automatic
+updating of an unverifiable binary is therefore a trust decision, which is why it
+is a visible setting rather than something that cannot be turned off — if you do
+not want that trust model, set the mode to **notify only** or **off**.
+
+### Version numbers must agree
+
+`Updater.CurrentVersion` reads the assembly version and compares it with the
+release tag. If `desktop/Luncher.Companion.csproj`, `desktop/installer/Luncher.iss`
+and the built exe ever disagree, the app either never updates or reinstalls itself
+on every launch. That mismatch is invisible in a diff, so the Windows workflow
+asserts all three match before packaging.
+
 ## Net Melli detection
 
 Same logic as the Android app, and the same reason for existing. The network check

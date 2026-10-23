@@ -192,6 +192,18 @@ public static class ConfigStore
         }
     }
 
+    public static string UpdateMode
+    {
+        get
+        {
+            var m = Load().UpdateMode;
+            // Anything unrecognised falls back to auto rather than silently
+            // disabling updates, which is the safer of the two defaults here.
+            return m == "notify" || m == "off" ? m : "auto";
+        }
+        set { Load().UpdateMode = value; Save(); }
+    }
+
     public static string Language
     {
         get => Load().Language;

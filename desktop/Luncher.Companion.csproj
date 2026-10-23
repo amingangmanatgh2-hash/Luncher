@@ -8,9 +8,9 @@
     <Nullable>disable</Nullable>
     <AssemblyName>Luncher</AssemblyName>
     <RootNamespace>Luncher.Companion</RootNamespace>
-    <Version>1.0.0</Version>
-    <FileVersion>1.0.0.0</FileVersion>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <Version>1.0.1</Version>
+    <FileVersion>1.0.1.0</FileVersion>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
     <Product>Luncher Companion</Product>
     <Company>Luncher</Company>
     <Description>Config manager and network diagnostician for Luncher panels on Windows.</Description>

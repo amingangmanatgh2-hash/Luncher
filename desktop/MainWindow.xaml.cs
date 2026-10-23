@@ -30,14 +30,111 @@ public partial class MainWindow : Window
         SelectOnRightClick(SubList);
 
         Render();
+        UpdateModeLabel();
+
         Loaded += async (_, _) =>
         {
             _clients = Clients.Detect();
             Status(_clients.Count == 0
                 ? Strings.Get("K_NoClient")
                 : string.Format(Strings.Get("K_ClientFound"), _clients[0].Name, _clients.Count));
-            await Task.CompletedTask;
+            // silent: true means "obey the user's update mode". An explicit click
+            // passes false and always checks, whatever the mode is set to.
+            await CheckForUpdateAsync(silent: true);
         };
+    }
+
+    /* ------------------------------------------------------------- updating */
+
+    private void UpdateModeLabel()
+    {
+        var mode = ConfigStore.UpdateMode;
+        var word = mode == "notify" ? Strings.Get("K_ModeNotify")
+                 : mode == "off" ? Strings.Get("K_ModeOff")
+                 : Strings.Get("K_ModeAuto");
+        UpdateModeBtn.Content = string.Format(Strings.Get("K_UpdateMode"), word);
+    }
+
+    private void OnCycleUpdateMode(object sender, RoutedEventArgs e)
+    {
+        // Cycles auto -> notify -> off. Auto-installing an unsigned binary is a
+        // trust decision, so turning it off has to be reachable from the UI
+        // rather than buried in a config file.
+        var next = ConfigStore.UpdateMode switch { "auto" => "notify", "notify" => "off", _ => "auto" };
+        ConfigStore.UpdateMode = next;
+        UpdateModeLabel();
+        if (next == "off") Status(Strings.Get("K_UpdateTrust"));
+    }
+
+    private void OnCheckUpdate(object sender, RoutedEventArgs e) => _ = CheckForUpdateAsync(silent: false);
+
+    private async Task CheckForUpdateAsync(bool silent)
+    {
+        var mode = ConfigStore.UpdateMode;
+        if (silent && mode == "off") return;
+
+        UpdateBtn.IsEnabled = false;
+        UpdateModeBtn.IsEnabled = false;
+        try
+        {
+            Status(Strings.Get("K_UpdateChecking"));
+            var info = await Updater.CheckAsync();
+
+            if (!string.IsNullOrEmpty(info.Error))
+            {
+                // A failed background check must not shout at the user on every
+                // launch; an explicit click always reports.
+                if (!silent) Status(string.Format(Strings.Get("K_UpdateFailed"), info.Error));
+                return;
+            }
+            if (!info.Available)
+            {
+                if (!silent) Status(string.Format(Strings.Get("K_UpdateLatest"), Updater.CurrentVersion));
+                return;
+            }
+            if (silent && mode == "notify")
+            {
+                Status(string.Format(Strings.Get("K_UpdateNotify"), info.Version));
+                return;
+            }
+            await ApplyUpdateAsync(info);
+        }
+        catch (Exception ex)
+        {
+            Status(string.Format(Strings.Get("K_UpdateFailed"), ex.Message ?? ex.GetType().Name));
+        }
+        finally
+        {
+            UpdateBtn.IsEnabled = true;
+            UpdateModeBtn.IsEnabled = true;
+        }
+    }
+
+    private async Task ApplyUpdateAsync(UpdateInfo info)
+    {
+        // Progress<double> marshals back onto the UI thread, so the handler can
+        // touch StatusText directly.
+        var progress = new Progress<double>(p =>
+            Status(string.Format(Strings.Get("K_UpdateDownloading"), (int)(p * 100))));
+
+        var result = await Updater.DownloadAndVerifyAsync(info, progress);
+        if (!result.ok)
+        {
+            Status(string.Format(Strings.Get("K_UpdateFailed"), result.error));
+            return;
+        }
+
+        Status(Strings.Get("K_UpdateInstalling"));
+        if (!Updater.Install(result.path))
+        {
+            Status(string.Format(Strings.Get("K_UpdateFailed"), "the installer did not start"));
+            return;
+        }
+        // The installer has to replace files this process holds open, so exit and
+        // let it finish. The Inno [Run] entry flagged skipifnotsilent relaunches
+        // the app afterwards — a silent update that left nothing open would look
+        // like the app had crashed.
+        Application.Current.Shutdown();
     }
 
     private static void SelectOnRightClick(ListBox list)

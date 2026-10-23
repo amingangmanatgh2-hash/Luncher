@@ -68,6 +68,20 @@ jobs:
             Write-Error "publish did not produce Luncher.exe"; exit 1
           }
 
+      # Updater.CurrentVersion reads the assembly version and compares it against
+      # the release tag. If these three ever disagree the app either never updates
+      # or — worse — downloads and reinstalls itself on every launch, in a loop.
+      # That failure is invisible in a diff, so CI asserts it instead.
+      - name: Verify the version numbers agree
+        shell: pwsh
+        run: |
+          $csproj = (Select-String -Path desktop/Luncher.Companion.csproj -Pattern '<Version>([^<]+)</Version>').Matches[0].Groups[1].Value
+          $iss    = (Select-String -Path desktop/installer/Luncher.iss -Pattern '#define MyAppVersion "([^"]+)"').Matches[0].Groups[1].Value
+          $exe    = (Get-Item desktop/publish/Luncher.exe).VersionInfo.ProductVersion
+          Write-Host "csproj=$csproj  iss=$iss  exe=$exe"
+          if ($csproj -ne $iss) { Write-Error "csproj ($csproj) and installer ($iss) disagree"; exit 1 }
+          if ($exe -notlike "$csproj*") { Write-Error "built exe reports $exe, expected $csproj"; exit 1 }
+
       - name: Install Inno Setup
         shell: pwsh
         run: |
@@ -93,9 +107,9 @@ jobs:
           New-Item -ItemType Directory -Force dist | Out-Null
           $setup = Get-ChildItem dist\Luncher-Setup-*.exe | Select-Object -First 1
           if (-not $setup) { Write-Error "installer was not produced"; exit 1 }
-          Compress-Archive -Path desktop/publish/* -DestinationPath dist/Luncher-Portable-1.0.0.zip -Force
+          Compress-Archive -Path desktop/publish/* -DestinationPath dist/Luncher-Portable-1.0.1.zip -Force
           @(
-            "version=1.0.0",
+            "version=1.0.1",
             "commit=$env:GITHUB_SHA",
             "builtAt=$(Get-Date -Format o)",
             "runtime=net8.0-windows, self-contained win-x64",

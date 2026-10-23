@@ -36,6 +36,10 @@ public sealed class SubscriptionItem
 public sealed class Store
 {
     public string Language { get; set; } = "fa";
+    // "auto" | "notify" | "off". Auto-installing an UNSIGNED binary is a trust
+    // decision, so it is a setting the user can see and change rather than
+    // behaviour that cannot be turned off.
+    public string UpdateMode { get; set; } = "auto";
     public List<ConfigItem> Configs { get; set; } = new();
     public List<SubscriptionItem> Subs { get; set; } = new();
 }

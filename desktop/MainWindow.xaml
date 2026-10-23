@@ -49,6 +49,9 @@
                 <TextBlock Text="{DynamicResource K_Subtitle}" Foreground="#8B98A9" Margin="0,2,0,0"/>
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="UpdateModeBtn" Style="{StaticResource Act}" Click="OnCycleUpdateMode"
+                        ToolTip="{DynamicResource K_UpdateTrust}"/>
+                <Button x:Name="UpdateBtn" Style="{StaticResource Act}" Content="{DynamicResource K_Update}" Click="OnCheckUpdate"/>
                 <Button x:Name="LangBtn" Style="{StaticResource Act}" Content="{DynamicResource K_Lang}" Click="OnLang"/>
                 <Button x:Name="NetBtn" Style="{StaticResource Accent}" Content="{DynamicResource K_NetCheck}" Click="OnNetCheck"/>
             </StackPanel>

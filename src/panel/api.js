@@ -4,6 +4,7 @@ import { json, html, escapeHtml, notFound } from '../lib/errors.js';
 import { loadSettings, saveSettings, validateReport } from './settings.js';
 import { newUser, applyEdits, quotaState, publicUser, randomUuid, randomTrojanPassword } from './users.js';
 import { buildLinks, buildAll, buildXrayJson, subscriptionHeaders } from './configs.js';
+import { sha224, toHex } from '../lib/sha224.js';
 import { FRAGMENT_PRESETS, CIPHER_SUITES, FINGERPRINTS, DECOY_SNI, CF_RANGES_V4, CF_RANGES_V6, SANCTIONED_DOMAINS, WORKER_TCP_PORTS, isSanctioned, detectClient, CLIENT_UA_SIGNATURES, IRAN_DNS_SERVERS } from './presets.js';
 import { sha256Hex, clientIp, adminCredential, login, logout, sessionCookie } from './auth.js';
 import { qrToSvg, encodeQr } from '../lib/qr.js';
@@ -386,6 +387,25 @@ export async function handleApi(path, request, { env, store, governor, session, 
 
 /* ------------------------------------------------- subscriptions & status */
 
+/**
+ * A short, stable digest of everything in a settings object that can reach the
+ * emitted links or JSON. Deliberately explicit rather than hashing the whole
+ * object: an unrelated field (a UI preference, say) should not invalidate every
+ * cached subscription on the edge.
+ */
+function fingerprint(s) {
+  const parts = [
+    s.preset, s.cs, s.fp, s.sniMode, s.decoy, s.path, s.wsPath, s.earlyData,
+    s.netMelli, s.netMelliDns, s.jsonStyle, s.blockAds, s.unlockSanctioned,
+    s.profileTitle, s.useWorkerHostAsAddress, s.allowInsecure, s.decoyRedirect,
+    (s.cleanIps || []).join(','), (s.cleanIp6 || []).join(','),
+    // Relays change which outbound a sanctioned domain uses, so their full shape
+    // matters, not just how many there are.
+    JSON.stringify(s.relays || []),
+  ];
+  return toHex(sha224(new TextEncoder().encode(parts.join('|')))).slice(0, 16);
+}
+
 export async function handleSubscription(match, request, { env, store, settings, governor }) {
   const token = match[1];
   const suffix = match[2] || '';
@@ -429,7 +449,12 @@ export async function handleSubscription(match, request, { env, store, settings,
       ? `${detected.key} (${detected.source})`
       : `${configured.join('+') || 'none'} (default)`;
   const eps = endpointsFor(settings, host);
-  const links = buildAll({ user, endpoints: eps, settings: { ...settingsForUser(settings, user), clients, profileTitle: settings.profileTitle }, max: settings.maxLinksPerSub });
+  // Hoisted because it is needed twice: once to build the links and once to
+  // fingerprint the cache key. settingsForUser applies a per-user preset override,
+  // so fingerprinting the panel-wide settings instead would miss exactly the case
+  // where one user's config differs from everyone else's.
+  const effective = { ...settingsForUser(settings, user), clients, profileTitle: settings.profileTitle };
+  const links = buildAll({ user, endpoints: eps, settings: effective, max: settings.maxLinksPerSub });
 
   // Touch first_seen so "start on first connect" works from the subscription too.
   if (!user.first_seen_at) {
@@ -480,7 +505,21 @@ export async function handleSubscription(match, request, { env, store, settings,
       // The key must carry every input that changes the bytes: the client list,
       // the format suffix AND the b64 flag. Omitting b64 would let a cached raw
       // body be served to a client that asked for the wrapped one.
-      const variant = `${clients.join('-')}${suffix}${b64 ? '-b64' : ''}`;
+      /**
+       * The cache key must carry every input that changes the bytes on the wire.
+       *
+       * It used to carry only the client list, the format suffix and the b64 flag.
+       * That omitted the preset, the ws path, SNI mode, cipher suites, the
+       * fingerprint, net-melli mode, the relay list and every clean IP — so an
+       * admin who changed any of them kept serving the OLD subscription until the
+       * edge TTL expired, which with s-maxage=120 plus stale-while-revalidate=600
+       * can be several minutes. The symptom is the worst kind: the admin changes a
+       * setting, nothing appears to happen, and they conclude the panel is broken.
+       *
+       * Hashed rather than inlined because the relay list alone can be long, and a
+       * cache key is a URL.
+       */
+      const variant = `${clients.join('-')}${suffix}${b64 ? '-b64' : ''}-${fingerprint(effective)}`;
       const cacheKey = new Request(`${origin}/__subcache/${token}/${variant}`, { method: 'GET' });
       const cached = await caches.default.match(cacheKey);
       if (cached) return new Response(cached.body, { headers: { ...headers, 'x-luncher-cache': 'hit' } });

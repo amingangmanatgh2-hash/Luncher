@@ -108,9 +108,15 @@ export function attachSession(p) {
       upWriter = tun.writable.getWriter();
       try { await upWriter.write(hdr.rest); } finally { upWriter.releaseLock(); upWriter = null; }
     }
-    await toUpstream.readable.pipeTo(tun.writable).catch(() => { /* peer reset */ });
-    finish(1000, '');
+    // Establishing the tunnel is all this function does now. It used to also pump
+    // client -> target to completion before returning, which is the bug fixed at
+    // the call site below.
     return {};
+  }
+
+  /** Client -> target. Must run CONCURRENTLY with pumpDownstream, never before it. */
+  async function pumpUpstream() {
+    await toUpstream.readable.pipeTo(tunnel.writable).catch(() => { /* peer reset */ });
   }
 
   async function pumpDownstream() {
@@ -171,7 +177,28 @@ export function attachSession(p) {
       const opened = await openTunnel(hdr);
       if (opened.error) { result.reason = opened.error; return; }
       result.via = tunnel && tunnel.via;
-      await pumpDownstream();
+
+      /**
+       * Both directions run concurrently, and whichever ends first ends the
+       * session.
+       *
+       * This was previously `await openTunnel(hdr)` — where openTunnel pumped
+       * client -> target to completion — followed by `await pumpDownstream()`.
+       * But `toUpstream.readable` only ends when the client stops sending, so on
+       * any live session that pipe never settled and pumpDownstream never ran.
+       *
+       * The failure mode was nastily plausible: the target was dialled, the
+       * request arrived, and the server answered — but nothing was ever relayed
+       * back, so every session hung until the idle timer closed it. It looks like
+       * a blocked site rather than a broken proxy, which is why it survived unit
+       * tests that exercise each half in isolation. Only a real end-to-end tunnel
+       * shows it up.
+       *
+       * Promise.race rather than all: a target that closes must end the session
+       * immediately instead of waiting on an upload stream that will not end.
+       */
+      await Promise.race([pumpUpstream(), pumpDownstream()]).catch(() => { /* either side reset */ });
+      finish(1000, '');
     }).catch((e) => finish(1011, 'session error'));
   });
 
