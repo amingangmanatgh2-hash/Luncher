@@ -149,6 +149,15 @@ export const FRAGMENT_PRESETS = {
       ],
     },
   },
+  satellite: {
+    label: 'Satellite (Starlink)', labelFa: 'ماهواره‌ای (استارلینک)',
+    note: 'No fragmentation, deliberately. Starlink traffic does not traverse Iranian ISP infrastructure, so there is usually no SNI inspector in the path at all — and on a link with 25-60 ms RTT and heavy jitter, every inter-fragment delay costs a round trip. This preset trades stealth for throughput and keeps a shorter keepalive so a stalled flow is detected sooner. It is also the one case where an international cutoff does not matter, because the satellite link is not the Iranian link.',
+    legacy: null, mask: null,
+    // Preset-level socket tuning. Shorter keepalive idle than the default 100 s:
+    // on a jittery LEO link a half-open connection is common and waiting 100 s to
+    // notice is a very long stall for the user.
+    sockopt: { tcpNoDelay: true, tcpFastOpen: true, tcpKeepAliveIdle: 30 },
+  },
 };
 
 export const DEFAULT_PRESET = 'balanced';
@@ -220,3 +229,64 @@ export const IRAN_DIRECT_IPS = ['geoip:ir', '10.0.0.0/8', '192.168.0.0/16', '172
 
 /** Ports Cloudflare Workers is allowed to dial out on. */
 export const WORKER_TCP_PORTS = [20, 21, 22, 80, 443, 8080, 8443, 2052, 2053, 2082, 2083, 2086, 2087, 2095, 2096];
+
+/* ------------------------------------------------------------------ net melli */
+
+/**
+ * Domestic DNS for net-melli mode.
+ *
+ * Resolving a `.ir` name through a foreign resolver costs an international round
+ * trip for a site that is hosted inside the country, and can return a CDN edge the
+ * direct routing rule then has to match anyway. A domestic resolver returns
+ * Iranian IPs straight away.
+ *
+ * HONEST CAVEAT: reachability of any specific domestic resolver varies by ISP and
+ * changes over time, and it cannot be verified from a build environment outside
+ * Iran. The default is a widely used Iranian DoH endpoint; `settings.netMelliDns`
+ * overrides it, and `skipFallback` is left false so an unreachable resolver degrades
+ * to the foreign servers instead of failing `.ir` outright.
+ */
+export const IRAN_DNS_SERVERS = [
+  'https://dns.bitdns.ir/dns-query',
+  'https://d00.dns.bitdns.ir/dns-query',
+];
+
+/* --------------------------------------------------------- client detection */
+
+/**
+ * User-Agent signatures, in the order they must be tested.
+ *
+ * Order is load-bearing: PattNG is a fork of v2rayNG, so its User-Agent can
+ * contain "v2rayng" as well as its own name. Testing the specific signature first
+ * is the only thing that keeps a PattNG user from being handed a plain v2rayNG
+ * dialect and silently losing `fm`/`cs`.
+ *
+ * Only clients whose dialect we actually emit are listed. Everything else returns
+ * null and falls back to the full configured set, which is the safe answer: a
+ * wrong guess that serves one dialect is worse than no guess that serves all of
+ * them. Deliberately absent for that reason are Clash, sing-box and Shadowrocket,
+ * which do not consume `vless://` share links the same way and would only be
+ * guessed at.
+ */
+export const CLIENT_UA_SIGNATURES = [
+  { key: 'pattng', label: 'PattNG', patterns: ['pattng', 'patt-ng', 'patterniha'] },
+  { key: 'hiddify', label: 'Hiddify', patterns: ['hiddify'] },
+  { key: 'streisand', label: 'Streisand', patterns: ['streisand'] },
+  // NekoBox / NekoRay and Windows v2rayN all speak the v2rayNG link dialect.
+  { key: 'v2rayng', label: 'v2rayNG', patterns: ['v2rayng', 'v2ray-ng', 'v2rayn', 'nekobox', 'nekoray', 'sagernet'] },
+];
+
+/**
+ * Map a User-Agent to the link dialect that client wants.
+ * @returns {{key:string,label:string,source:string}|null} null when unknown
+ */
+export function detectClient(ua) {
+  if (!ua) return null;
+  const s = String(ua).toLowerCase();
+  for (const sig of CLIENT_UA_SIGNATURES) {
+    if (sig.patterns.some((pat) => s.includes(pat))) {
+      return { key: sig.key, label: sig.label, source: 'user-agent' };
+    }
+  }
+  return null;
+}

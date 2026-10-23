@@ -6,7 +6,7 @@
  * because the free tier bills D1 by rows touched.
  */
 
-import { DEFAULT_PRESET, FRAGMENT_PRESETS, CIPHER_SUITES, FINGERPRINTS, DECOY_SNI, CF_SEED_IPS_V4, CF_SEED_IPS_V6 } from './presets.js';
+import { DEFAULT_PRESET, FRAGMENT_PRESETS, CIPHER_SUITES, FINGERPRINTS, DECOY_SNI, CF_SEED_IPS_V4, CF_SEED_IPS_V6, IRAN_DNS_SERVERS } from './presets.js';
 import { isIpv4 } from '../lib/bytes.js';
 
 export const DEFAULTS = {
@@ -28,6 +28,18 @@ export const DEFAULTS = {
   unlockSanctioned: true,
   blockAds: true,
   jsonStyle: 'finalmask',     // 'finalmask' (new Xray/PattNG) | 'outbound' (classic v2rayNG)
+  // --- net melli ------------------------------------------------------------
+  // Domestic traffic already goes direct in every generated config, because that
+  // is simply correct routing. This flag adds the part that is not automatic: a
+  // domestic resolver for .ir names, so a site hosted inside the country is not
+  // resolved over an international round trip. It cannot make Cloudflare
+  // reachable during an international cutoff, and nothing server-side can.
+  netMelli: false,
+  netMelliDns: IRAN_DNS_SERVERS[0],
+  // --- client detection -----------------------------------------------------
+  // Read the subscription's User-Agent and put the matching dialect first. Off
+  // means always serve every configured dialect.
+  autoDetectClient: true,
   subCacheSeconds: 120,
   maxLinksPerSub: 12,
   language: 'fa',
@@ -47,6 +59,15 @@ export function normalize(raw) {
   if (s.sniMode !== 'real' && s.sniMode !== 'decoy') s.sniMode = 'real';
   if (!Array.isArray(s.clients) || s.clients.length === 0) s.clients = DEFAULTS.clients;
   if (!['finalmask', 'outbound'].includes(s.jsonStyle)) s.jsonStyle = 'finalmask';
+  s.netMelli = s.netMelli === true;
+  // Accept a DoH URL or a bare resolver IP; anything else falls back rather than
+  // emitting a config the client would reject at load time.
+  if (typeof s.netMelliDns !== 'string' ||
+      !/^https:\/\/[A-Za-z0-9.\-\/]{4,120}$/.test(s.netMelliDns) &&
+      !/^([0-9]{1,3}\.){3}[0-9]{1,3}$/.test(s.netMelliDns)) {
+    s.netMelliDns = DEFAULTS.netMelliDns;
+  }
+  s.autoDetectClient = s.autoDetectClient !== false;
   if (typeof s.subCacheSeconds !== 'number' || s.subCacheSeconds < 0 || s.subCacheSeconds > 3600) s.subCacheSeconds = 120;
   if (typeof s.maxLinksPerSub !== 'number' || s.maxLinksPerSub < 1 || s.maxLinksPerSub > 40) s.maxLinksPerSub = 12;
 

@@ -4,7 +4,7 @@ import { json, html, escapeHtml, notFound } from '../lib/errors.js';
 import { loadSettings, saveSettings, validateReport } from './settings.js';
 import { newUser, applyEdits, quotaState, publicUser, randomUuid, randomTrojanPassword } from './users.js';
 import { buildLinks, buildAll, buildXrayJson, subscriptionHeaders } from './configs.js';
-import { FRAGMENT_PRESETS, CIPHER_SUITES, FINGERPRINTS, DECOY_SNI, CF_RANGES_V4, CF_RANGES_V6, SANCTIONED_DOMAINS, WORKER_TCP_PORTS, isSanctioned } from './presets.js';
+import { FRAGMENT_PRESETS, CIPHER_SUITES, FINGERPRINTS, DECOY_SNI, CF_RANGES_V4, CF_RANGES_V6, SANCTIONED_DOMAINS, WORKER_TCP_PORTS, isSanctioned, detectClient, CLIENT_UA_SIGNATURES, IRAN_DNS_SERVERS } from './presets.js';
 import { sha256Hex, clientIp, adminCredential, login, logout, sessionCookie } from './auth.js';
 import { qrToSvg, encodeQr } from '../lib/qr.js';
 
@@ -72,6 +72,9 @@ export async function handleApi(path, request, { env, store, governor, session, 
       ok: true, version: VERSION, panelName: settings.panelName || 'Luncher',
       configured: cred.configured, backend: store.kind, language: settings.language,
       presets: PRESET_LIST,
+      clientSignatures: CLIENT_UA_SIGNATURES.map((c) => ({ key: c.key, label: c.label, patterns: c.patterns })),
+      iranDnsServers: IRAN_DNS_SERVERS,
+      netMelli: { enabled: settings.netMelli === true, dns: settings.netMelliDns, autoDetectClient: settings.autoDetectClient !== false },
       cipherSuiteOptions: Object.keys(CIPHER_SUITES),
       fingerprints: FINGERPRINTS,
       decoys: DECOY_SNI,
@@ -148,6 +151,9 @@ export async function handleApi(path, request, { env, store, governor, session, 
       // datalist and sanctioned-domain list from these. Serving them keeps the
       // client free of hardcoded enums that silently fall out of date.
       presets: PRESET_LIST,
+      clientSignatures: CLIENT_UA_SIGNATURES.map((c) => ({ key: c.key, label: c.label, patterns: c.patterns })),
+      iranDnsServers: IRAN_DNS_SERVERS,
+      netMelli: { enabled: settings.netMelli === true, dns: settings.netMelliDns, autoDetectClient: settings.autoDetectClient !== false },
       sanctionedDomains: SANCTIONED_DOMAINS,
       fingerprints: FINGERPRINTS,
       cipherSuites: Object.keys(CIPHER_SUITES),
@@ -393,8 +399,35 @@ export async function handleSubscription(match, request, { env, store, settings,
   const q = quotaState(user, settings);
   if (!q.active) return html(403, SUB_INACTIVE(user, q));
 
+  /**
+   * Which dialect(s) to emit, in precedence order:
+   *
+   *   1. an explicit `?client=` — the caller knows best and always wins
+   *   2. the subscription's own User-Agent, when auto-detection is on
+   *   3. every dialect the panel is configured for
+   *
+   * Detection puts the match FIRST rather than serving it alone. That matters: a
+   * wrong guess that emits one dialect leaves the user with a config that will
+   * not import, while a wrong guess that emits one dialect plus the configured
+   * fallbacks leaves them with a working link further down the list.
+   */
   const clientParam = url.searchParams.get('client');
-  const clients = clientParam ? [clientParam] : settings.clients;
+  const detected = settings.autoDetectClient === false
+    ? null
+    : detectClient(request.headers.get('user-agent'));
+  const configured = settings.clients || [];
+  const clients = clientParam
+    ? [clientParam]
+    : detected
+      ? [detected.key, ...configured.filter((c) => c !== detected.key)]
+      : configured;
+  // Reported back so the behaviour is debuggable from curl instead of being
+  // something you have to read the source to understand.
+  const clientSource = clientParam
+    ? `${clientParam} (query)`
+    : detected
+      ? `${detected.key} (${detected.source})`
+      : `${configured.join('+') || 'none'} (default)`;
   const eps = endpointsFor(settings, host);
   const links = buildAll({ user, endpoints: eps, settings: { ...settingsForUser(settings, user), clients, profileTitle: settings.profileTitle }, max: settings.maxLinksPerSub });
 
@@ -439,7 +472,8 @@ export async function handleSubscription(match, request, { env, store, settings,
   }
 
   const headers = { ...subscriptionHeaders({ profileTitle: settings.profileTitle, supportUrl: `${origin}/s/${token}` }),
-    'content-type': contentType };
+    'content-type': contentType,
+    'x-luncher-client': clientSource };
 
   if (settings.subCacheSeconds > 0 && request.method === 'GET') {
     try {

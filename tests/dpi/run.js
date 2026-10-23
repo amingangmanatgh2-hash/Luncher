@@ -107,6 +107,14 @@ function nodeConnect({ hostname, port }) {
  * survives, the target echoes bytes back; if it is blocked, the socket dies.
  * That keeps the assertion honest — it is what a real client would experience.
  */
+/**
+ * A preset fragments only if it carries a mask. `none` and `satellite` do not, and
+ * a future preset that deliberately opts out must not need a new special case
+ * sprinkled through this file — the harness crashed the first time a second
+ * non-fragmenting preset appeared, which is what this replaces.
+ */
+const fragments = (id) => !!(FRAGMENT_PRESETS[id] && FRAGMENT_PRESETS[id].mask);
+
 async function attempt(dpiPort, { sni, preset = 'none', hostHeader = null, timeoutMs = 1200 }) {
   const hello = clientHello(sni);
   const schedule = fragment(hello, preset);
@@ -207,10 +215,10 @@ async function main() {
       const runs = [];
       for (let i = 0; i < TRIALS; i++) runs.push(await attempt(dpi.port, { sni, preset: id }));
       const passed = runs.filter((r) => r.verdict === 'allowed').length;
-      const expectAllow = id !== 'none';
+      const expectAllow = fragments(id);
       const ok = expectAllow ? passed === TRIALS : passed === 0;
       record('first-packet', `${id.padEnd(14)} vs ${sni}`,
-        ok, `${passed}/${TRIALS} allowed, ${runs[0].pieces} fragments${expectAllow ? '' : ' (expected blocked: preset is Off)'}`);
+        ok, `${passed}/${TRIALS} allowed, ${runs[0].pieces} fragments${expectAllow ? '' : ' (expected blocked: preset does not fragment)'}`);
     }
     await dpi.close();
   }
@@ -222,7 +230,7 @@ async function main() {
   {
     const dpi = await startDpi({ target, blocklist: BLOCKED, mode: 'streaming', windowMs: 40, windowBytes: 8192 });
     for (const id of Object.keys(FRAGMENT_PRESETS)) {
-      if (id === 'none') { streaming[id] = { passed: 0, note: 'no fragmentation' }; continue; }
+      if (!fragments(id)) { streaming[id] = { passed: 0, note: 'no fragmentation' }; continue; }
       let passed = 0; let pieces = 0;
       for (let i = 0; i < TRIALS; i++) {
         const r = await attempt(dpi.port, { sni: BLOCKED[i % BLOCKED.length], preset: id });

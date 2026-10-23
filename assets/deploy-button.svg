@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="210" height="44" viewBox="0 0 210 44" role="img" aria-label="Deploy to Workers">
+  <title>Deploy to Workers</title>
+  <!-- Text only, no raster: an SVG stays reviewable in a diff and cannot rot
+       the way a binary badge image can. -->
+  <rect width="210" height="44" rx="7" fill="#F0B429"/>
+  <path d="M22 12.5l11.5 8.2L22 29V12.5z" fill="#0B0F17"/>
+  <rect x="17.5" y="12.5" width="3" height="16.5" rx="1.5" fill="#0B0F17"/>
+  <text x="42" y="20" font-family="Segoe UI,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#0B0F17">Deploy to</text>
+  <text x="42" y="34" font-family="Segoe UI,Helvetica,Arial,sans-serif" font-size="14" font-weight="700" fill="#0B0F17">Workers</text>
+</svg>

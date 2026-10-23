@@ -15,7 +15,7 @@ import { isIpv6 } from '../lib/bytes.js';
  * cs/fm/fp on all of them is safe and means one subscription works everywhere.
  */
 
-import { FRAGMENT_PRESETS, CIPHER_SUITES, DEFAULT_PRESET, SANCTIONED_DOMAINS, IRAN_DIRECT_DOMAINS, IRAN_DIRECT_IPS } from './presets.js';
+import { FRAGMENT_PRESETS, CIPHER_SUITES, DEFAULT_PRESET, SANCTIONED_DOMAINS, IRAN_DIRECT_DOMAINS, IRAN_DIRECT_IPS, IRAN_DNS_SERVERS } from './presets.js';
 
 const e = encodeURIComponent;
 
@@ -190,7 +190,10 @@ export function buildXrayJson({ user, endpoint, settings, style = 'finalmask', b
     network: 'ws',
     security: endpoint.tls === false ? 'none' : 'tls',
     wsSettings: { path, headers: { Host: wsHost }, maxEarlyData: ed, earlyDataHeaderName: '' },
-    sockopt: { tcpNoDelay: true, tcpFastOpen: true, tcpKeepAliveIdle: 100 },
+    // A preset may override socket tuning. `satellite` shortens the keepalive
+    // because a half-open flow is common on a jittery LEO link and 100 s is a
+    // very long stall to wait through before noticing.
+    sockopt: p.sockopt || { tcpNoDelay: true, tcpFastOpen: true, tcpKeepAliveIdle: 100 },
   };
   if (streamSettings.security === 'tls') streamSettings.tlsSettings = tlsSettings;
 
@@ -245,6 +248,15 @@ export function buildXrayJson({ user, endpoint, settings, style = 'finalmask', b
     log: { loglevel: 'warning' },
     dns: {
       servers: [
+        // Net-melli mode puts a domestic resolver ahead of everything else for
+        // .ir names. skipFallback stays false on purpose: if that resolver is
+        // unreachable, degrading to 1.1.1.1 keeps domestic sites working, whereas
+        // skipping the fallback would fail .ir resolution entirely.
+        ...(settings.netMelli
+          ? [{ address: settings.netMelliDns || IRAN_DNS_SERVERS[0], port: 443,
+               domains: ['geosite:ir', 'regexp:.*\\.ir$'],
+               expectIPs: ['geoip:ir'], skipFallback: false }]
+          : []),
         { address: 'https://1.1.1.1/dns', port: 443, domains: ['geosite:ir'], skipFallback: false },
         { address: '1.1.1.1', port: 53 },
         { address: '8.8.8.8', port: 53 },

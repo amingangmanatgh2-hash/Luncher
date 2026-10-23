@@ -87,6 +87,15 @@
       wsPath: 'مسیر تونل', panelName: 'نام پنل', profileTitle: 'عنوان پروفایل',
       language: 'زبان', blockAds: 'مسدودسازی تبلیغات', unlockSanctioned: 'بازکردن سرویس‌های تحریمی',
       jsonStyle: 'سبک کانفیگ JSON', subCache: 'کش سابسکریپشن (ثانیه)', maxLinks: 'حداکثر کانفیگ در ساب',
+      autoDetect: 'تشخیص خودکار کلاینت از User-Agent',
+      autoDetectHint: 'وقتی برنامه اشتراک را می‌خواند، پنل گویش لینک مناسب همان برنامه را اول می‌فرستد. PattNG اولویت دارد چون فقط آنجا fm و cs کامل کار می‌کند. یک ?client= صریح همیشه بر تشخیص مقدم است.',
+      netMelliTitle: 'نت ملی',
+      netMelliCaveatTitle: 'این گزینه چه کاری نمی‌کند',
+      netMelli: 'حالت نت ملی (DNS داخلی برای دامنه‌های .ir)',
+      netMelliHint: 'ترافیک داخلی در همه‌ی کانفیگ‌ها از قبل مستقیم می‌رود، چون مسیر درست همان است. این گزینه چیزی را اضافه می‌کند که خودکار نیست: یک resolver داخلی برای نام‌های .ir، تا سایتی که داخل کشور میزبانی می‌شود با یک رفت‌وبرگشت بین‌المللی resolve نشود.',
+      netMelliDns: 'سرور DNS داخلی',
+      netMelliDnsHint: 'آدرس DoH یا IP. در دسترس‌بودن یک resolver مشخص بسته به ISP عوض می‌شود و از بیرون کشور قابل تأیید نیست؛ اگر کار نکرد خالی بگذار تا به مقدار پیش‌فرض برگردد. skipFallback خاموش است یعنی اگر این سرور نرسد، به 1.1.1.1 برمی‌گردیم تا .ir کلاً از کار نیفتد.',
+      netMelliCaveat: 'هشدار صادقانه: این گزینه نت ملی را از طریق کلودفلر ممکن نمی‌کند. وقتی لینک بین‌الملل قطع است، لبه‌ی کلودفلر از داخل کشور قابل دسترسی نیست و هیچ تنظیمی سمت ورکر این را عوض نمی‌کند. کاری که واقعاً سایت‌های داخلی را باز نگه می‌دارد split routing سمت کلاینت است (که کانفیگ‌های خروجی انجام می‌دهند) به‌علاوه‌ی تشخیص روی خود دستگاه — برنامه‌ی همراه دکمه‌ی «بررسی شبکه» دارد که همین را می‌گوید: داخلی باز است و خارجی نه، یعنی لینک بین‌الملل قطع است نه کانفیگ تو.',
       changePass: 'تغییر رمز عبور', backup: 'پشتیبان‌گیری',
       exportBackup: 'دریافت پشتیبان', importBackup: 'بازیابی از فایل',
       allowedPorts: 'پورت‌های مجاز خروجی', cfRanges: 'رنج‌های آی‌پی کلودفلر',
@@ -147,6 +156,15 @@
       wsPath: 'Tunnel path', panelName: 'Panel name', profileTitle: 'Profile title',
       language: 'Language', blockAds: 'Block ads', unlockSanctioned: 'Unlock sanctioned services',
       jsonStyle: 'JSON config style', subCache: 'Subscription cache (seconds)', maxLinks: 'Max configs per subscription',
+      autoDetect: 'Auto-detect the client from its User-Agent',
+      autoDetectHint: 'When an app fetches a subscription, the panel puts that app\'s own link dialect first. PattNG has priority, because only there do fm and cs work in full. An explicit ?client= always beats detection.',
+      netMelliTitle: 'Net Melli',
+      netMelliCaveatTitle: 'What this setting does not do',
+      netMelli: 'Net Melli mode (domestic DNS for .ir domains)',
+      netMelliHint: 'Domestic traffic already goes direct in every config, because that is simply correct routing. This adds the part that is not automatic: a domestic resolver for .ir names, so a site hosted inside the country is not resolved over an international round trip.',
+      netMelliDns: 'Domestic DNS server',
+      netMelliDnsHint: 'A DoH URL or an IP. Reachability of any given resolver varies by ISP and cannot be verified from outside the country; leave it blank to fall back to the default. skipFallback is off, so an unreachable resolver degrades to 1.1.1.1 rather than failing .ir entirely.',
+      netMelliCaveat: 'An honest warning: this does not make Net Melli work through Cloudflare. When the international link is cut, the Cloudflare edge is unreachable from inside the country and no Worker-side setting changes that. What actually keeps domestic sites working is client-side split routing (which the generated configs already do) plus detection on the device — the companion apps have a network check for exactly this: domestic up, international down means the country is offline, not that your config is broken.',
       changePass: 'Change password', backup: 'Backup',
       exportBackup: 'Export backup', importBackup: 'Restore from file',
       allowedPorts: 'Allowed outbound ports', cfRanges: 'Cloudflare IP ranges',
@@ -1148,6 +1166,9 @@
     var ads = h('input', { type: 'checkbox', checked: !!s.blockAds });
     var sanc = h('input', { type: 'checkbox', checked: !!s.unlockSanctioned });
     var useHost = h('input', { type: 'checkbox', checked: s.useWorkerHostAsAddress !== false });
+    var melli = h('input', { type: 'checkbox', checked: !!s.netMelli });
+    var melliDns = h('input', { value: s.netMelliDns || '', style: 'direction:ltr;font-family:var(--mono)', placeholder: 'https://dns.bitdns.ir/dns-query' });
+    var autodetect = h('input', { type: 'checkbox', checked: s.autoDetectClient !== false });
 
     card.appendChild(h('div', { class: 'field-row' }, field(t('panelName'), name), field(t('profileTitle'), title)));
     card.appendChild(field(t('wsPath'), ws,
@@ -1164,6 +1185,21 @@
       h('span', { class: 'lbl' }, 'Also offer the Worker hostname as an address',
         h('small', { text: 'Turn off to emit clean-IP configs only.' }))));
 
+    card.appendChild(h('label', { class: 'switch' }, autodetect, h('span', { class: 'track' }),
+      h('span', { class: 'lbl' }, t('autoDetect'),
+        h('small', { text: t('autoDetectHint') }))));
+
+    // Net melli gets its own heading because the honest explanation does not fit
+    // in a one-line hint, and a toggle that overpromises is worse than no toggle.
+    card.appendChild(h('div', { class: 'card-head' }, h('h3', { text: t('netMelliTitle') })));
+    card.appendChild(h('label', { class: 'switch' }, melli, h('span', { class: 'track' }),
+      h('span', { class: 'lbl' }, t('netMelli'),
+        h('small', { text: t('netMelliHint') }))));
+    card.appendChild(field(t('netMelliDns'), melliDns, t('netMelliDnsHint')));
+    // notice() injects its text as HTML, so escape even though this string is a
+    // static translation with no user input in it.
+    card.appendChild(notice('warn', t('netMelliCaveatTitle'), esc(t('netMelliCaveat'))));
+
     var save = btn(t('save'), { kind: 'primary', icon: 'check' });
     save.addEventListener('click', async function () {
       save.disabled = true;
@@ -1171,7 +1207,8 @@
         var r = await api('/api/settings', { method: 'PUT', body: {
           panelName: name.value, profileTitle: title.value, wsPath: ws.value, language: lsel.value,
           subCacheSeconds: Number(cache.value), maxLinksPerSub: Number(maxl.value),
-          blockAds: ads.checked, unlockSanctioned: sanc.checked, useWorkerHostAsAddress: useHost.checked } });
+          blockAds: ads.checked, unlockSanctioned: sanc.checked, useWorkerHostAsAddress: useHost.checked,
+          netMelli: melli.checked, netMelliDns: melliDns.value.trim(), autoDetectClient: autodetect.checked } });
         state.settings = r.settings; toast(t('saved'), 'ok'); renderShell();
       } catch (e) { toast(e.message, 'err'); } finally { save.disabled = false; }
     });
