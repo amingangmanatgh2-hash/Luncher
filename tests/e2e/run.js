@@ -28,7 +28,6 @@ import os from 'node:os';
 import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { unstable_dev } from 'wrangler';
 
 import { uuidToBytes } from '../../src/lib/bytes.js';
 import { trojanKey } from '../../src/lib/sha224.js';
@@ -190,6 +189,17 @@ async function main() {
 
   // A throwaway persist dir per run, so "setup wizard" means genuinely unset-up.
   const persistTo = fs.mkdtempSync(path.join(os.tmpdir(), 'luncher-e2e-'));
+  // Isolate wrangler's dev-session registry too. It lives under XDG_CONFIG_HOME,
+  // and sharing it with a `wrangler dev` that is already running is destructive:
+  // when this sandbox exits it removes the registry entry the live server is
+  // periodically touching, and that server dies with
+  //   ENOENT: no such file or directory, utime .../registry/<name>
+  // Setting the variable here rather than in an import means wrangler must be
+  // loaded dynamically below — ESM imports are hoisted and would have read the
+  // real config home long before this line ran.
+  const configHome = fs.mkdtempSync(path.join(os.tmpdir(), 'luncher-e2e-cfg-'));
+  process.env.XDG_CONFIG_HOME = configHome;
+  const { unstable_dev } = await import('wrangler');
   let worker = null;
   let target = null;
   let workerPort = 0;
@@ -538,6 +548,7 @@ async function main() {
     try { if (target) await target.close(); } catch {}
     try { if (worker) await worker.stop(); } catch {}
     try { fs.rmSync(persistTo, { recursive: true, force: true }); } catch {}
+    try { fs.rmSync(configHome, { recursive: true, force: true }); } catch {}
   }
 
   /* -------------------------------------------------------------- summary */
