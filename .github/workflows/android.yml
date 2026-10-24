@@ -1,0 +1,204 @@
+# Builds the Luncher Companion Android app and publishes it to GitHub Releases.
+#
+# Why CI and not a committed binary: an APK is a ~5 MB opaque blob. Committing it
+# would make the repository unreviewable, and nobody could tell whether the
+# artifact matched the source. Building from a tag means every published APK is
+# reproducible from the commit that produced it.
+#
+# The wrapper jar is generated rather than committed for the same reason — it is
+# a binary nobody can review in a diff. `gradle wrapper` produces the exact same
+# files a developer would commit.
+
+name: Android
+
+on:
+  # No `paths` filter here on purpose. Under a single `push:` key a paths filter
+  # applies to tag pushes too, and tagging a commit that is already on main can
+  # resolve to "no changed paths" — silently skipping the very release build the
+  # tag exists to trigger. A three-minute build on every push to main is a much
+  # better trade than a release that sometimes does not happen.
+  push:
+    branches:
+      - main
+    tags:
+      - 'app-v*'
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Publish a draft GitHub Release with the artifacts'
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle.properties'
+      - '.github/workflows/android.yml'
+
+permissions:
+  contents: write
+  # Needed by the failure-reporting step to comment on the pull request.
+  # `contents: write` alone makes `gh pr comment` fail with 403.
+  pull-requests: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build APK and AAB
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # No third-party Android setup step. The ubuntu-latest runner image already
+      # ships the SDK with licences pre-accepted, and AGP downloads any platform
+      # or build-tools version it needs on demand. An extra action here only adds
+      # a network dependency and another way to fail before compiling a line.
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      # AGP needs a keystore to sign the release variant. CI generates a
+      # throwaway one so the artifact is installable for sideloading. It is NOT
+      # a publishing key: see docs/android.md for wiring up a real one.
+      - name: Create a build keystore
+        run: |
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair -v \
+              -keystore "$HOME/.android/debug.keystore" \
+              -storepass android -keypass android \
+              -alias androiddebugkey \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          ls -l "$HOME/.android/"
+
+      - name: Report the Android SDK
+        run: |
+          echo "ANDROID_HOME=${ANDROID_HOME:-unset}"
+          echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-unset}"
+          SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          if [ -z "$SDK" ] || [ ! -d "$SDK" ]; then
+            echo "::error::No Android SDK found on the runner image."
+            exit 1
+          fi
+          ls "$SDK"
+          test -f "$SDK/licenses/android-sdk-license" || echo "::warning::SDK licences not pre-accepted"
+          java -version
+          gradle --version
+
+      - name: Generate the Gradle wrapper
+        run: gradle wrapper --gradle-version 8.7 --no-daemon
+
+      - name: Build
+        shell: bash
+        run: |
+          # pipefail matters: without it `tee` would swallow Gradle's exit code
+          # and a failed build would report success.
+          set -o pipefail
+          ./gradlew :app:assembleDebug :app:assembleRelease :app:bundleRelease \
+            --no-daemon --stacktrace 2>&1 | tee build.log
+
+      # The Actions log service is not reachable from every environment (it is
+      # served from a host separate from the GitHub API), so a failed build would
+      # otherwise be undiagnosable from the API alone. Posting the relevant part
+      # of the Gradle log back to the PR keeps the failure readable wherever the
+      # API is readable — and it is useful to humans too.
+      - name: Report a build failure on the pull request
+        if: failure() && github.event_name == 'pull_request'
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ ! -s build.log ]; then
+            echo "No build log was produced; the failure happened earlier."
+            exit 0
+          fi
+
+          # Channel 1: workflow-command annotations. These are readable through
+          # the plain check-runs API, with no extra token permission, so the
+          # failure is visible even if commenting below is not allowed.
+          grep -E "^e: |^\* What went wrong|^Execution failed|^FAILURE:|> Task .* FAILED" build.log \
+            | head -n 25 \
+            | while IFS= read -r line; do
+                printf '::error::%s\n' "$(printf '%s' "$line" | tr -d '\r' | sed 's/%/%%/g')"
+              done
+
+          # Channel 2: a PR comment with fuller context.
+          {
+            echo "### Android build failed"
+            echo
+            echo "Commit \`${GITHUB_SHA}\` · run [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+            echo
+            echo '```'
+            # Gradle puts the actionable part under "What went wrong" and the
+            # Kotlin compiler reports "e: file:line: message". A full
+            # --stacktrace log is far too large for a comment, so keep those.
+            grep -E "^(FAILURE|\* What went wrong|\* Where|\* Try|e: |> Task .* FAILED|BUILD FAILED|Caused by:|A problem occurred|Execution failed)" build.log | head -n 60 || true
+            echo
+            grep -E "^e: " build.log | head -n 40 || true
+            echo '```'
+            echo
+            echo '<details><summary>last 120 lines</summary>'
+            echo
+            echo '```'
+            tail -n 120 build.log
+            echo '```'
+            echo '</details>'
+          } > failure-comment.md
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file failure-comment.md
+
+      - name: Rename artifacts
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk     dist/luncher-companion-debug.apk
+          cp app/build/outputs/apk/release/app-release.apk dist/luncher-companion.apk
+          cp app/build/outputs/bundle/release/app-release.aab dist/luncher-companion.aab
+          # Record what was built, so a release is self-describing.
+          {
+            echo "versionName=$(grep -oP 'versionName "\K[^"]+' app/build.gradle)"
+            echo "commit=${GITHUB_SHA}"
+            echo "builtAt=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "signedWith=ci-throwaway-key (not for Play Store)"
+          } > dist/build-info-android.txt
+          ls -l dist/
+          sha256sum dist/*.apk dist/*.aab | tee dist/SHA256SUMS-android.txt
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: luncher-companion
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
+      # Only on a version tag, or when a manual run asks for it.
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/app-v') || inputs.publish_release == true
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/luncher-companion.apk
+            dist/luncher-companion-debug.apk
+            dist/luncher-companion.aab
+            dist/SHA256SUMS-android.txt
+            dist/build-info-android.txt
+          generate_release_notes: true
+          draft: ${{ !startsWith(github.ref, 'refs/tags/app-v') }}
+          fail_on_unmatched_files: true

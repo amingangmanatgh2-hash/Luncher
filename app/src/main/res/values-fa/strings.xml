@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">لانچر</string>
+    <string name="tagline">مدیریت کانفیگ</string>
+    <string name="empty_title">هنوز کانفیگی ندارید</string>
+    <string name="empty_body">یک لینک vless یا trojan را بچسبانید، آدرس اشتراک اضافه کنید، یا لینک را از مرورگر یا پنل لانچر اینجا Share کنید.</string>
+    <string name="add">افزودن</string>
+    <string name="paste_link">چسباندن لینک</string>
+    <string name="subscription_url">آدرس اشتراک</string>
+    <string name="refresh">به‌روزرسانی</string>
+    <string name="open_in_client">باز کردن در برنامهٔ تونل</string>
+    <string name="copy">کپی</string>
+    <string name="share">اشتراک‌گذاری</string>
+    <string name="delete">حذف</string>
+    <string name="cancel">انصراف</string>
+    <string name="save">ذخیره</string>
+    <string name="name">نام</string>
+    <string name="net_check">بررسی نت ملی</string>
+    <string name="net_check_running">در حال سنجش مسیر داخلی و خارجی…</string>
+    <string name="copied">کپی شد</string>
+    <string name="added">کانفیگ اضافه شد</string>
+    <string name="added_many">%1$d کانفیگ اضافه شد</string>
+    <string name="deleted">حذف شد</string>
+    <string name="no_client">برنامهٔ تونلی برای باز کردن این لینک نصب نیست. ابتدا PattNG یا v2rayNG یا Hiddify را نصب کنید.</string>
+    <string name="invalid_link">این متن شبیه لینک کانفیگ یا آدرس اشتراک نیست.</string>
+    <string name="sub_added">اشتراک ذخیره شد</string>
+    <string name="sub_fetching">در حال دریافت اشتراک…</string>
+    <string name="sub_failed">دریافت اشتراک ناموفق بود: %1$s</string>
+    <string name="configs_count">%1$d کانفیگ</string>
+    <string name="section_local">کانفیگ‌های محلی</string>
+    <string name="section_subs">اشتراک‌ها</string>
+    <string name="net_isolated_title">شما روی نت ملی هستید</string>
+    <string name="net_isolated_body">سایت‌های داخلی پاسخ دادند ولی خارجی‌ها نه. یعنی لینک بین‌الملل قطع شده و در این وضعیت هیچ تونل مبتنی بر کلودفلر کار نمی‌کند؛ این وضعیت شبکه است نه کانفیگ خراب. سایت‌های داخلی باید مستقیم باز شوند.</string>
+    <string name="net_normal_title">دسترسی عادی بین‌المللی</string>
+    <string name="net_normal_body">هم مسیر داخلی و هم خارجی پاسخ داد، پس تونل شما باید کار کند.</string>
+    <string name="net_offline_title">اتصال قابل استفاده نیست</string>
+    <string name="net_offline_body">نه مسیر داخلی پاسخ داد نه خارجی. اینترنت سیم‌کارت یا وای‌فای را بررسی کنید.</string>
+    <string name="net_partial_title">وضعیت نیمه‌فیلتر</string>
+    <string name="net_partial_body">مسیر خارجی پاسخ داد ولی داخلی نه؛ معمولاً نشانهٔ مشکل DNS یا صفحهٔ ورود شبکهٔ محلی است.</string>
+    <string name="net_detail_domestic">داخلی</string>
+    <string name="net_detail_international">خارجی</string>
+    <string name="reachable">در دسترس</string>
+    <string name="unreachable">غیرقابل دسترس</string>
+    <string name="ms">%1$d میلی‌ثانیه</string>
+    <string name="about">درباره</string>
+    <string name="about_body">لانچر کامپانیون کانفیگ‌ها را مدیریت و شبکهٔ شما را عیب‌یابی می‌کند. خودش پروکسی نیست: با زدن «باز کردن در برنامهٔ تونل» لینک به PattNG یا v2rayNG یا Hiddify سپرده می‌شود و تونل واقعی را آن‌ها می‌سازند.</string>
+</resources>

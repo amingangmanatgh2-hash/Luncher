@@ -1,0 +1,177 @@
+# Builds the Luncher Windows companion and packages it as an installer with
+# Inno Setup. Published to GitHub Releases on an app-v* tag.
+#
+# The exe is UNSIGNED. Code signing needs a certificate that costs money and
+# requires verified identity, so SmartScreen will warn on first run. See
+# docs/windows.md — pretending otherwise in the metadata would be worse.
+
+name: Windows
+
+on:
+  # No paths filter on push: under one `push:` key it applies to tag pushes too,
+  # and tagging a commit already on main can resolve to "no changed paths",
+  # silently skipping the release the tag exists to produce.
+  push:
+    branches:
+      - main
+    tags:
+      - 'app-v*'
+  pull_request:
+    paths:
+      - 'desktop/**'
+      - '.github/workflows/windows.yml'
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Publish a draft GitHub Release with the installer'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build installer
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Report the toolchain
+        shell: pwsh
+        run: |
+          dotnet --info | Select-Object -First 20
+
+      # Tee-Object keeps a log for the failure reporter. $LASTEXITCODE has to be
+      # re-checked explicitly: a native command piped into a cmdlet reports the
+      # cmdlet's success, so a broken build would otherwise look green.
+      - name: Publish
+        shell: pwsh
+        run: |
+          dotnet publish desktop/Luncher.Companion.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -o desktop/publish 2>&1 | Tee-Object -FilePath build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem desktop/publish | Measure-Object | ForEach-Object { "publish files: $($_.Count)" }
+          if (-not (Test-Path desktop/publish/Luncher.exe)) {
+            Write-Error "publish did not produce Luncher.exe"; exit 1
+          }
+
+      # Updater.CurrentVersion reads the assembly version and compares it against
+      # the release tag. If these three ever disagree the app either never updates
+      # or — worse — downloads and reinstalls itself on every launch, in a loop.
+      # That failure is invisible in a diff, so CI asserts it instead.
+      - name: Verify the version numbers agree
+        shell: pwsh
+        run: |
+          $csproj = (Select-String -Path desktop/Luncher.Companion.csproj -Pattern '<Version>([^<]+)</Version>').Matches[0].Groups[1].Value
+          $iss    = (Select-String -Path desktop/installer/Luncher.iss -Pattern '#define MyAppVersion "([^"]+)"').Matches[0].Groups[1].Value
+          $exe    = (Get-Item desktop/publish/Luncher.exe).VersionInfo.ProductVersion
+          Write-Host "csproj=$csproj  iss=$iss  exe=$exe"
+          if ($csproj -ne $iss) { Write-Error "csproj ($csproj) and installer ($iss) disagree"; exit 1 }
+          if ($exe -notlike "$csproj*") { Write-Error "built exe reports $exe, expected $csproj"; exit 1 }
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress 2>&1 | Tee-Object -FilePath build.log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Compile the installer
+        shell: pwsh
+        run: |
+          $iscc = @(
+            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+            "$env:ProgramFiles\Inno Setup 6\ISCC.exe",
+            "$env:ChocolateyInstall\bin\ISCC.exe"
+          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $iscc) { Write-Error "ISCC.exe not found"; exit 1 }
+          Write-Host "using $iscc"
+          & $iscc desktop\installer\Luncher.iss 2>&1 | Tee-Object -FilePath build.log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Collect artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          $setup = Get-ChildItem dist\Luncher-Setup-*.exe | Select-Object -First 1
+          if (-not $setup) { Write-Error "installer was not produced"; exit 1 }
+          Compress-Archive -Path desktop/publish/* -DestinationPath dist/Luncher-Portable-1.0.1.zip -Force
+          @(
+            "version=1.0.1",
+            "commit=$env:GITHUB_SHA",
+            "builtAt=$(Get-Date -Format o)",
+            "runtime=net8.0-windows, self-contained win-x64",
+            "signed=no (SmartScreen will warn on first run)"
+          ) | Set-Content dist/build-info-windows.txt
+          Get-FileHash dist/Luncher-Setup-*.exe, dist/Luncher-Portable-*.zip |
+            ForEach-Object { "$($_.Hash)  $(Split-Path $_.Path -Leaf)" } |
+            Set-Content dist/SHA256SUMS-windows.txt
+          Get-ChildItem dist | Select-Object Name, Length
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: luncher-windows
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+      # Same rationale as the Android workflow: the Actions log service is served
+      # from a host separate from the GitHub API, so annotations and a PR comment
+      # are the channels that stay readable when the log itself is not.
+      - name: Report a build failure on the pull request
+        if: failure() && github.event_name == 'pull_request'
+        continue-on-error: true
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if (-not (Test-Path build.log)) { "no build log"; exit 0 }
+          $fence = [string][char]96 * 3
+          $keys = Select-String -Path build.log -Pattern 'error |Error:|FAILED|Exception|ISCC|Fatal' | Select-Object -First 25
+          foreach ($k in $keys) {
+            $line = ($k.Line -replace '%', '%%').Trim()
+            if ($line) { Write-Host "::error::$line" }
+          }
+          $body = New-Object System.Collections.Generic.List[string]
+          $body.Add('### Windows build failed')
+          $body.Add('')
+          $body.Add('Commit ' + $env:GITHUB_SHA)
+          $body.Add('')
+          $body.Add($fence)
+          foreach ($k in $keys) { $body.Add($k.Line) }
+          $body.Add($fence)
+          $body.Add('')
+          $body.Add('<details><summary>last 120 lines</summary>')
+          $body.Add('')
+          $body.Add($fence)
+          foreach ($l in (Get-Content build.log -Tail 120)) { $body.Add($l) }
+          $body.Add($fence)
+          $body.Add('</details>')
+          $body -join "`n" | Set-Content -Encoding utf8 failure-comment.md
+          gh pr comment ${{ github.event.pull_request.number }} --body-file failure-comment.md
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/app-v') || inputs.publish_release == true
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/Luncher-Setup-*.exe
+            dist/Luncher-Portable-*.zip
+            dist/SHA256SUMS-windows.txt
+            dist/build-info-windows.txt
+          generate_release_notes: true
+          draft: ${{ !startsWith(github.ref, 'refs/tags/app-v') }}
+          fail_on_unmatched_files: true

@@ -1,0 +1,76 @@
+# ---------------------------------------------------------------------------
+# LOCAL DEVELOPMENT CONFIG — not for deployment.
+#
+#   npm run dev        ->  wrangler dev --config wrangler.local.toml ...
+#   npm run deploy     ->  wrangler deploy  (uses wrangler.toml)
+#
+# Why a second file: wrangler v3 has no config inheritance, and the deploy
+# config must leave D1/KV commented so the one-click Deploy button works before
+# any database exists. Local dev wants a KV binding so the panel runs in full
+# multi-user mode rather than solo mode. tests/config.test.js asserts the two
+# files stay in agreement on everything that affects the deployed bundle, so the
+# duplication cannot silently drift.
+# ---------------------------------------------------------------------------
+#:schema node_modules/wrangler/config-schema.json
+name = "luncher-dev"
+main = "src/worker.js"
+# wrangler v3 ships a workerd runtime whose newest supported compatibility date
+# is 2025-07-18. Requesting anything later makes every request log a fallback
+# warning. Raise this only after moving to wrangler v4.
+compatibility_date = "2025-07-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+keep_vars = true
+
+# Module rules: none needed.
+#
+# Every non-JS asset the Worker imports has an extension that wrangler treats as
+# Text BY DEFAULT (`**/*.txt` and `**/*.html`), so there is nothing to configure:
+#
+#   src/ui/index.html        -> Text (default)
+#   src/ui/styles.css.txt    -> Text (default)
+#   src/ui/app.js.txt        -> Text (default)
+#   src/ui/icons.js.txt      -> Text (default)
+#
+# The `.txt` suffixes are load-bearing, not cosmetic. esbuild reserves `.js` and
+# `.css` for its own loaders and applies them BEFORE wrangler's module rules, so
+# importing either extension as text silently produces an object instead of a
+# string. The served page then contains `<style>[object Object]</style>` and an
+# empty <script>, with no build error to point at it. See the header comment in
+# each of those files, and tests/ui.test.js which guards the replacement.
+#
+# If you add an asset with another extension, add a rule here — and set
+# `fallthrough = true`, or wrangler ignores its own defaults and the build fails
+# with "matched a module rule ... but was ignored".
+
+# ---------------------------------------------------------------------------
+# Storage. Both are OPTIONAL.
+#
+#   D1 present  -> full multi-user panel with quotas, stats and history.
+#   KV present  -> same, without SQL reporting.
+#   neither     -> "solo mode": one admin + one user, configured by env vars.
+#
+# The worker detects what is bound at runtime, so the one-click Deploy button
+# works before you create anything. To enable D1 later:
+#   npx wrangler d1 create luncher-db
+#   paste the database_id below, then:
+#   npx wrangler d1 execute luncher-db --remote --file=./schema.sql
+# ---------------------------------------------------------------------------
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "luncher-db"
+# database_id = "REPLACE_WITH_YOUR_D1_ID"
+
+# Local dev only: a KV binding with a placeholder id. Miniflare simulates it and
+# persists to .wrangler/state, so the panel runs in full multi-user mode instead
+# of solo/memory mode. Never deploy this file.
+[[kv_namespaces]]
+binding = "KV"
+id = "00000000000000000000000000000000"
+
+[vars]
+# Displayed in the UI and stamped into every generated config remark.
+PANEL_NAME = "Luncher"
+# Set on first run by the panel itself (SHA-256). Leaving it empty forces the
+# setup wizard on /panel.
+# ADMIN_PASS_HASH = ""

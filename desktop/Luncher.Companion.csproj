@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <AssemblyName>Luncher</AssemblyName>
+    <RootNamespace>Luncher.Companion</RootNamespace>
+    <Version>1.0.1</Version>
+    <FileVersion>1.0.1.0</FileVersion>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
+    <Product>Luncher Companion</Product>
+    <Company>Luncher</Company>
+    <Description>Config manager and network diagnostician for Luncher panels on Windows.</Description>
+    <!-- No ApplicationIcon on purpose: an .ico is a binary blob that cannot be
+         authored or reviewed in this repository. Same rule as the Android app. -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+</Project>

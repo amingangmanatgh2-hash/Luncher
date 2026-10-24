@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The same bolt glyph the panel uses, so the app and the web UI read as one
+     product. Pure vector: no density variants, no binary assets to go missing. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFA94D"
+        android:pathData="M54,22 L74,54 L61,54 L71,86 L38,50 L51,50 L40,22 Z" />
+</vector>

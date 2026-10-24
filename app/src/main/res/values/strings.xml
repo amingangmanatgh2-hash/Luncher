@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Luncher</string>
+    <string name="tagline">Config companion</string>
+    <string name="empty_title">No configs yet</string>
+    <string name="empty_body">Paste a vless:// or trojan:// link, add a subscription URL, or share a link here from your browser or the Luncher panel.</string>
+    <string name="add">Add</string>
+    <string name="paste_link">Paste link</string>
+    <string name="subscription_url">Subscription URL</string>
+    <string name="refresh">Refresh</string>
+    <string name="open_in_client">Open in tunnel app</string>
+    <string name="copy">Copy</string>
+    <string name="share">Share</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="name">Name</string>
+    <string name="net_check">Net Melli check</string>
+    <string name="net_check_running">Probing domestic and international routes…</string>
+    <string name="copied">Copied to clipboard</string>
+    <string name="added">Config added</string>
+    <string name="added_many">Added %1$d configs</string>
+    <string name="deleted">Deleted</string>
+    <string name="no_client">No tunnel app installed to open this link. Install PattNG, v2rayNG or Hiddify first.</string>
+    <string name="invalid_link">That does not look like a share link or a subscription URL.</string>
+    <string name="sub_added">Subscription saved</string>
+    <string name="sub_fetching">Fetching subscription…</string>
+    <string name="sub_failed">Subscription fetch failed: %1$s</string>
+    <string name="configs_count">%1$d configs</string>
+    <string name="section_local">Local configs</string>
+    <string name="section_subs">Subscriptions</string>
+    <string name="net_isolated_title">You are on Net Melli</string>
+    <string name="net_isolated_body">Domestic sites answered but international ones did not. Iran has cut the international link, so no Cloudflare-based tunnel can work right now — this is a network condition, not a broken config. Domestic sites should still load directly.</string>
+    <string name="net_normal_title">Normal international access</string>
+    <string name="net_normal_body">Both domestic and international routes answered, so your tunnel should work.</string>
+    <string name="net_offline_title">No usable connection</string>
+    <string name="net_offline_body">Neither domestic nor international probes answered. Check your mobile data or Wi-Fi.</string>
+    <string name="net_partial_title">Partially filtered</string>
+    <string name="net_partial_body">International routes answered but domestic ones did not, which usually means a DNS or captive-portal problem on your local network.</string>
+    <string name="net_detail_domestic">Domestic</string>
+    <string name="net_detail_international">International</string>
+    <string name="reachable">reachable</string>
+    <string name="unreachable">unreachable</string>
+    <string name="ms">%1$d ms</string>
+    <string name="about">About</string>
+    <string name="about_body">Luncher Companion manages configs and diagnoses your network. It is not itself a proxy: tapping Open in tunnel app hands the link to PattNG, v2rayNG, Hiddify or another installed client, which does the actual tunneling.</string>
+</resources>

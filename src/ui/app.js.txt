@@ -1,0 +1,1296 @@
+/* ==========================================================================
+   NOTE ON THE FILE EXTENSION
+   --------------------------------------------------------------------------
+   This file is plain JavaScript, but it is stored as `.txt` on purpose.
+
+   The Worker serves the whole panel as ONE inlined HTML document: it imports
+   this file as raw text and concatenates it into the document's single inline
+   script element. That keeps the panel at one request with zero external
+   dependencies, which is the point (see docs/limits.md and docs/anti-ban.md).
+
+   Because this text is inlined, it must never contain a literal opening or
+   closing script tag — the closing form would truncate the page outright.
+   tests/ui.test.js enforces that.
+
+   esbuild resolves any `.js` import as an ES module *before* wrangler's Text
+   module rule can apply, so a `.js` extension here fails the build with
+   "No matching export ... for import default". The `.txt` suffix is
+   unambiguous: wrangler treats it as Text by default, on every version, with no
+   custom rules needed.
+
+   Everything below is still ordinary JS — `node --check` it any time by
+   copying it to a `.js` name.
+   ========================================================================== */
+
+/* ==========================================================================
+   Luncher panel — single-file SPA
+   --------------------------------------------------------------------------
+   Vanilla JS, no framework, no build step at runtime. That is deliberate:
+   every dependency pulled from a CDN is a dependency that can fail on a
+   throttled or filtered network. The whole panel — markup, styles, icons and
+   logic — arrives as ONE document and ONE request.
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  var BOOT = window.LUNCHER_BOOT || {};
+  var LS_LANG = 'luncher.lang';
+  var lang = localStorage.getItem(LS_LANG) || BOOT.language || 'fa';
+
+  var state = {
+    configured: !!BOOT.configured,
+    authed: false,
+    view: 'dash',
+    overview: null,
+    settings: null,
+    users: [],
+    focusUser: null,
+    client: 'pattng',
+  };
+
+  /* ---------------------------------------------------------------- i18n */
+
+  var T = {
+    fa: {
+      appTagline: 'پنل پروکسی کلودفلر',
+      navMain: 'اصلی', navTunnel: 'تونل', navSystem: 'سیستم',
+      dash: 'داشبورد', users: 'کاربرها', configs: 'کانفیگ‌ها', antidpi: 'ضد فیلتر',
+      relays: 'رله‌ها', diag: 'عیب‌یابی', settings: 'تنظیمات',
+      login: 'ورود', logout: 'خروج', password: 'رمز عبور', signIn: 'ورود به پنل',
+      setupTitle: 'راه‌اندازی اولیه', setupSub: 'یک رمز عبور قوی برای پنل انتخاب کنید (حداقل ۸ نویسه).',
+      setPassword: 'ثبت رمز', loginSub: 'برای مدیریت پنل وارد شوید.',
+      dailyBudget: 'بودجهٔ درخواست روزانه', requests: 'درخواست', usersActive: 'کاربر فعال',
+      totalUsers: 'کل کاربرها', backend: 'فضای ذخیره‌سازی', version: 'نسخه',
+      endpoints: 'نقاط اتصال', relay: 'رله', none: 'هیچ', configured: 'تنظیم شده',
+      quickActions: 'دسترسی سریع', newUser: 'کاربر جدید', refresh: 'به‌روزرسانی',
+      search: 'جستجو…', name: 'نام', protocol: 'پروتکل', quota: 'سهمیه',
+      expiry: 'انقضا', status: 'وضعیت', actions: 'عملیات', unlimited: 'نامحدود',
+      daysLeft: 'روز مانده', expired: 'منقضی', active: 'فعال', disabled: 'غیرفعال',
+      noUsers: 'هنوز کاربری نساخته‌اید.', noUsersHint: 'اولین کاربر را بسازید تا کانفیگ دریافت کند.',
+      create: 'ساختن', save: 'ذخیره', cancel: 'انصراف', close: 'بستن', delete: 'حذف',
+      edit: 'ویرایش', rotate: 'تعویض کلید', reset: 'صفر کردن مصرف',
+      quotaGb: 'سهمیهٔ ترافیک (گیگابایت)', expireDays: 'مدت اعتبار (روز)',
+      maxIps: 'حداکثر دستگاه همزمان', note: 'یادداشت', zeroUnlimited: '۰ = بدون محدودیت',
+      subLink: 'لینک سابسکریپشن', statusPage: 'صفحهٔ وضعیت', copy: 'کپی', copied: 'کپی شد!',
+      download: 'دانلود', downloadJson: 'دانلود JSON', qrTitle: 'کد QR',
+      qrNothing: 'کد QR آماده نیست', qrMeta: 'کد QR ساخته شد',
+      qrDenseTitle: 'این کد چگال است',
+      qrDenseText: 'نسخهٔ {v} ({n}×{n} خانه، سطح اصلاح خطای {ec}). برای اسکن موفق: روشنایی صفحه را حداکثر کنید، کد را تمام‌صفحه ببینید و گوشی را دور نگه دارید. اگر اسکن نشد، لینک را کپی کنید یا از QR آدرس اشتراک استفاده کنید که بسیار کوچک‌تر است.',
+      qrFailedTitle: 'کد QR ساخته نشد',
+      qrFailedText: 'می‌توانید متن کانفیگ را کپی کنید و مستقیم در برنامهٔ کلاینت وارد نمایید.',
+      preset: 'پریست', presets: 'پریست‌های ضد فیلتر',
+      cipherSuites: 'مجموعه سایفرها', fingerprint: 'اثر انگشت TLS',
+      sniMode: 'حالت SNI', sniReal: 'واقعی', sniDecoy: 'فریب (Decoy)',
+      decoyHost: 'دامنهٔ فریب', earlyData: 'دادهٔ زودهنگام (بایت)',
+      cleanIps: 'آی‌پی‌های تمیز IPv4', cleanIp6: 'آی‌پی‌های تمیز IPv6', addIp: 'افزودن',
+      ipHint: 'آی‌پی تمیز یعنی آی‌پی کلودفلری که اپراتور شما آن را مسدود یا کند نکرده. این مقدار به اپراتور و شهر شما بستگی دارد و مدام عوض می‌شود — حتماً خودتان اسکن کنید.',
+      wsPath: 'مسیر تونل', panelName: 'نام پنل', profileTitle: 'عنوان پروفایل',
+      language: 'زبان', blockAds: 'مسدودسازی تبلیغات', unlockSanctioned: 'بازکردن سرویس‌های تحریمی',
+      jsonStyle: 'سبک کانفیگ JSON', subCache: 'کش سابسکریپشن (ثانیه)', maxLinks: 'حداکثر کانفیگ در ساب',
+      autoDetect: 'تشخیص خودکار کلاینت از User-Agent',
+      autoDetectHint: 'وقتی برنامه اشتراک را می‌خواند، پنل گویش لینک مناسب همان برنامه را اول می‌فرستد. PattNG اولویت دارد چون فقط آنجا fm و cs کامل کار می‌کند. یک ?client= صریح همیشه بر تشخیص مقدم است.',
+      netMelliTitle: 'نت ملی',
+      netMelliCaveatTitle: 'این گزینه چه کاری نمی‌کند',
+      netMelli: 'حالت نت ملی (DNS داخلی برای دامنه‌های .ir)',
+      netMelliHint: 'ترافیک داخلی در همه‌ی کانفیگ‌ها از قبل مستقیم می‌رود، چون مسیر درست همان است. این گزینه چیزی را اضافه می‌کند که خودکار نیست: یک resolver داخلی برای نام‌های .ir، تا سایتی که داخل کشور میزبانی می‌شود با یک رفت‌وبرگشت بین‌المللی resolve نشود.',
+      netMelliDns: 'سرور DNS داخلی',
+      netMelliDnsHint: 'آدرس DoH یا IP. در دسترس‌بودن یک resolver مشخص بسته به ISP عوض می‌شود و از بیرون کشور قابل تأیید نیست؛ اگر کار نکرد خالی بگذار تا به مقدار پیش‌فرض برگردد. skipFallback خاموش است یعنی اگر این سرور نرسد، به 1.1.1.1 برمی‌گردیم تا .ir کلاً از کار نیفتد.',
+      netMelliCaveat: 'هشدار صادقانه: این گزینه نت ملی را از طریق کلودفلر ممکن نمی‌کند. وقتی لینک بین‌الملل قطع است، لبه‌ی کلودفلر از داخل کشور قابل دسترسی نیست و هیچ تنظیمی سمت ورکر این را عوض نمی‌کند. کاری که واقعاً سایت‌های داخلی را باز نگه می‌دارد split routing سمت کلاینت است (که کانفیگ‌های خروجی انجام می‌دهند) به‌علاوه‌ی تشخیص روی خود دستگاه — برنامه‌ی همراه دکمه‌ی «بررسی شبکه» دارد که همین را می‌گوید: داخلی باز است و خارجی نه، یعنی لینک بین‌الملل قطع است نه کانفیگ تو.',
+      changePass: 'تغییر رمز عبور', backup: 'پشتیبان‌گیری',
+      exportBackup: 'دریافت پشتیبان', importBackup: 'بازیابی از فایل',
+      allowedPorts: 'پورت‌های مجاز خروجی', cfRanges: 'رنج‌های آی‌پی کلودفلر',
+      sanctionedList: 'سرویس‌های تحریمی تحت پوشش', egressTest: 'تست آی‌پی خروجی',
+      egressHint: 'نشان می‌دهد گوگل و سرویس‌های تحریمی چه آی‌پی‌ای از شما می‌بینند. اگر آی‌پی ایران باشد، سرویس‌هایی مثل Gemini باز نمی‌شوند — در آن صورت یک رله اضافه کنید.',
+      runTest: 'اجرای تست', exitIp: 'آی‌پی خروجی', latency: 'زمان',
+      viaDirect: 'مستقیم از کلودفلر', viaRelay: 'از طریق رله',
+      newRelay: 'رلهٔ جدید', relayHost: 'آدرس', relayPort: 'پورت', relayType: 'نوع',
+      relayUser: 'نام کاربری', relayPass: 'رمز', relayScope: 'محدودهٔ کاربرد',
+      scopeSanctioned: 'فقط سرویس‌های تحریمی', scopeAll: 'همهٔ ترافیک',
+      noRelays: 'رله‌ای تنظیم نشده است.', relayNotConfigured: 'تنظیم نشده', relayWhy: 'چرا رله لازم است؟',
+      relayWhyText: 'فرگمنت فقط دید DPI را کور می‌کند؛ آی‌پی خروجی شما را عوض نمی‌کند. Gemini و Google AI Studio درخواست‌ها را بر اساس آی‌پی مبدأ رد می‌کنند، نه بر اساس محتوای بسته. برای باز شدن قطعی این سرویس‌ها، ترافیک باید از یک آی‌پی تمیز خارج از ایران بیرون برود.',
+      confirmDelete: 'این کاربر حذف شود؟', confirmRotate: 'کلیدها تعویض شوند؟ کانفیگ‌های قبلی از کار می‌افتند.',
+      saved: 'ذخیره شد', created: 'کاربر ساخته شد', deleted: 'حذف شد', rotated: 'کلیدها تعویض شد',
+      clientTabs: 'کلاینت', viewConfigs: 'مشاهدهٔ کانفیگ‌ها',
+      fragExplainer: 'فرگمنت چه کار می‌کند؟',
+      fragExplainerText: 'سیستم فیلترینگ برای تشخیص دامنهٔ مقصد، فقط چند بستهٔ اول اتصال TLS را می‌خواند. فرگمنت، بستهٔ ClientHello را به تکه‌های کوچک تقسیم می‌کند و با فاصلهٔ زمانی می‌فرستد؛ در نتیجه سامانهٔ بازرسی نمی‌تواند SNI را بازسازی کند و اتصال برقرار می‌شود. پریست‌های ایرانسل علاوه بر این، محدودیت آپلود روی آی‌پی‌های خارجی را هم دور می‌زنند.',
+      csHint: 'ترتیب سایفرها در ClientHello اثرانگشت هستهٔ Xray را لو می‌دهد. تغییر آن، تطبیق با امضای شناخته‌شده را ناممکن می‌کند.',
+      fpHint: 'unsafe اثرانگشت را عمداً ناقص و نامنظم می‌کند تا با هیچ مرورگر واقعی و هیچ امضای ثبت‌شده‌ای مطابقت نکند.',
+      decoyHint: 'در حالت فریب، کلاینت در ClientHello نام یک دامنهٔ بی‌خطر را می‌فرستد اما هدر Host همچنان به ورکر شما اشاره می‌کند. فقط وقتی کار می‌کند که مستقیماً به آی‌پی کلودفلر وصل شوید.',
+      budgetOk: 'مصرف در محدودهٔ امن است.',
+      budgetWarn: 'مصرف به آستانهٔ هشدار رسیده — پنل به‌زودی فقط صفحهٔ کش‌شده سرو می‌کند.',
+      budgetCrit: 'مصرف بحرانی است. تونل‌های جدید رد می‌شوند تا اکانت حفظ شود.',
+    },
+    en: {
+      appTagline: 'Cloudflare proxy panel',
+      navMain: 'Main', navTunnel: 'Tunnel', navSystem: 'System',
+      dash: 'Dashboard', users: 'Users', configs: 'Configs', antidpi: 'Anti-DPI',
+      relays: 'Relays', diag: 'Diagnostics', settings: 'Settings',
+      login: 'Sign in', logout: 'Sign out', password: 'Password', signIn: 'Sign in to panel',
+      setupTitle: 'First-time setup', setupSub: 'Choose a strong panel password (at least 8 characters).',
+      setPassword: 'Set password', loginSub: 'Sign in to manage your panel.',
+      dailyBudget: 'Daily request budget', requests: 'requests', usersActive: 'Active users',
+      totalUsers: 'Total users', backend: 'Storage backend', version: 'Version',
+      endpoints: 'Endpoints', relay: 'Relay', none: 'none', configured: 'configured',
+      quickActions: 'Quick actions', newUser: 'New user', refresh: 'Refresh',
+      search: 'Search…', name: 'Name', protocol: 'Protocol', quota: 'Quota',
+      expiry: 'Expiry', status: 'Status', actions: 'Actions', unlimited: 'unlimited',
+      daysLeft: 'days left', expired: 'expired', active: 'active', disabled: 'disabled',
+      noUsers: 'No users yet.', noUsersHint: 'Create the first user to get a config.',
+      create: 'Create', save: 'Save', cancel: 'Cancel', close: 'Close', delete: 'Delete',
+      edit: 'Edit', rotate: 'Rotate keys', reset: 'Reset usage',
+      quotaGb: 'Traffic quota (GB)', expireDays: 'Validity (days)',
+      maxIps: 'Max concurrent devices', note: 'Note', zeroUnlimited: '0 = unlimited',
+      subLink: 'Subscription link', statusPage: 'Status page', copy: 'Copy', copied: 'Copied!',
+      download: 'Download', downloadJson: 'Download JSON', qrTitle: 'QR code',
+      qrNothing: 'The QR code is not ready yet', qrMeta: 'QR code generated',
+      qrDenseTitle: 'This code is dense',
+      qrDenseText: 'Version {v} ({n}×{n} modules, error correction {ec}). To scan it: raise your screen brightness, view it full size, and hold the phone further away. If it will not scan, copy the link instead, or use the QR for the subscription URL, which is far smaller.',
+      qrFailedTitle: 'No QR code was generated',
+      qrFailedText: 'You can copy the config text and paste it straight into the client.',
+      preset: 'Preset', presets: 'Anti-DPI presets',
+      cipherSuites: 'Cipher suites', fingerprint: 'TLS fingerprint',
+      sniMode: 'SNI mode', sniReal: 'Real', sniDecoy: 'Decoy',
+      decoyHost: 'Decoy hostname', earlyData: 'Early data (bytes)',
+      cleanIps: 'Clean IPv4 addresses', cleanIp6: 'Clean IPv6 addresses', addIp: 'Add',
+      ipHint: 'A clean IP is a Cloudflare address your carrier has not blocked or throttled. It depends on your ISP and city and changes constantly — always scan your own.',
+      wsPath: 'Tunnel path', panelName: 'Panel name', profileTitle: 'Profile title',
+      language: 'Language', blockAds: 'Block ads', unlockSanctioned: 'Unlock sanctioned services',
+      jsonStyle: 'JSON config style', subCache: 'Subscription cache (seconds)', maxLinks: 'Max configs per subscription',
+      autoDetect: 'Auto-detect the client from its User-Agent',
+      autoDetectHint: 'When an app fetches a subscription, the panel puts that app\'s own link dialect first. PattNG has priority, because only there do fm and cs work in full. An explicit ?client= always beats detection.',
+      netMelliTitle: 'Net Melli',
+      netMelliCaveatTitle: 'What this setting does not do',
+      netMelli: 'Net Melli mode (domestic DNS for .ir domains)',
+      netMelliHint: 'Domestic traffic already goes direct in every config, because that is simply correct routing. This adds the part that is not automatic: a domestic resolver for .ir names, so a site hosted inside the country is not resolved over an international round trip.',
+      netMelliDns: 'Domestic DNS server',
+      netMelliDnsHint: 'A DoH URL or an IP. Reachability of any given resolver varies by ISP and cannot be verified from outside the country; leave it blank to fall back to the default. skipFallback is off, so an unreachable resolver degrades to 1.1.1.1 rather than failing .ir entirely.',
+      netMelliCaveat: 'An honest warning: this does not make Net Melli work through Cloudflare. When the international link is cut, the Cloudflare edge is unreachable from inside the country and no Worker-side setting changes that. What actually keeps domestic sites working is client-side split routing (which the generated configs already do) plus detection on the device — the companion apps have a network check for exactly this: domestic up, international down means the country is offline, not that your config is broken.',
+      changePass: 'Change password', backup: 'Backup',
+      exportBackup: 'Export backup', importBackup: 'Restore from file',
+      allowedPorts: 'Allowed outbound ports', cfRanges: 'Cloudflare IP ranges',
+      sanctionedList: 'Covered sanctioned services', egressTest: 'Egress IP test',
+      egressHint: 'Shows the IP Google and other sanctioned services actually see. If it is Iranian, services like Gemini will refuse you — add a relay.',
+      runTest: 'Run test', exitIp: 'Exit IP', latency: 'Latency',
+      viaDirect: 'direct via Cloudflare', viaRelay: 'via relay',
+      newRelay: 'New relay', relayHost: 'Host', relayPort: 'Port', relayType: 'Type',
+      relayUser: 'Username', relayPass: 'Password', relayScope: 'Scope',
+      scopeSanctioned: 'Sanctioned services only', scopeAll: 'All traffic',
+      noRelays: 'No relays configured.', relayNotConfigured: 'not configured', relayWhy: 'Why a relay is needed',
+      relayWhyText: 'Fragmentation only blinds DPI; it does not change your exit IP. Gemini and Google AI Studio reject requests by source IP, not by packet content. To reliably reach them your traffic must leave from a clean IP outside Iran.',
+      confirmDelete: 'Delete this user?', confirmRotate: 'Rotate keys? Existing configs will stop working.',
+      saved: 'Saved', created: 'User created', deleted: 'Deleted', rotated: 'Keys rotated',
+      clientTabs: 'Client', viewConfigs: 'View configs',
+      fragExplainer: 'What fragmentation does',
+      fragExplainerText: 'Censorship boxes reconstruct a destination from the first few packets of a TLS handshake. Fragmentation splits the ClientHello into small pieces sent with delays, so the inspector cannot reassemble the SNI and the connection succeeds. The Irancell presets additionally defeat the upload throttling applied to foreign IPs.',
+      csHint: 'Cipher order in the ClientHello fingerprints the Xray core. Reordering it defeats signature matching.',
+      fpHint: 'unsafe deliberately produces an irregular fingerprint that matches no known browser signature.',
+      decoyHint: 'In decoy mode the client advertises an innocent SNI while the Host header still points at your Worker. Only works when dialling a Cloudflare IP directly.',
+      budgetOk: 'Usage is within safe limits.',
+      budgetWarn: 'Usage reached the warning threshold — the panel will soon serve cached pages only.',
+      budgetCrit: 'Usage is critical. New tunnels are refused to protect the account.',
+    },
+  };
+
+  function t(k) { return (T[lang] && T[lang][k]) || T.en[k] || k; }
+
+  /* ------------------------------------------------------------- helpers */
+
+  function h(tag, attrs) {
+    var el = document.createElement(tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(function (k) {
+        var v = attrs[k];
+        if (v === null || v === undefined || v === false) return;
+        if (k === 'class') el.className = v;
+        else if (k === 'html') el.innerHTML = v;
+        else if (k === 'text') el.textContent = v;
+        else if (k.slice(0, 2) === 'on' && typeof v === 'function') el.addEventListener(k.slice(2), v);
+        else if (k === 'value') el.value = v;
+        else if (k === 'checked') el.checked = !!v;
+        else if (v === true) el.setAttribute(k, '');
+        else el.setAttribute(k, v);
+      });
+    }
+    for (var i = 2; i < arguments.length; i++) {
+      var kid = arguments[i];
+      if (kid === null || kid === undefined || kid === false) continue;
+      if (Array.isArray(kid)) kid.forEach(function (x) { if (x) el.appendChild(typeof x === 'string' ? document.createTextNode(x) : x); });
+      else el.appendChild(typeof kid === 'string' || typeof kid === 'number' ? document.createTextNode(String(kid)) : kid);
+    }
+    return el;
+  }
+
+  function icon(name) {
+    var s = document.createElement('span');
+    s.innerHTML = ICONS[name] || '';
+    return s.firstChild || document.createElement('span');
+  }
+
+  function btn(label, opts) {
+    opts = opts || {};
+    var b = h('button', { class: 'btn ' + (opts.kind || ''), type: 'button', onclick: opts.onclick, disabled: opts.disabled });
+    if (opts.icon) b.appendChild(icon(opts.icon));
+    if (label) b.appendChild(document.createTextNode(label));
+    return b;
+  }
+
+  function toast(msg, kind) {
+    var box = document.getElementById('toasts');
+    if (!box) return;
+    var el = h('div', { class: 'toast ' + (kind || 'info'), text: msg });
+    box.appendChild(el);
+    setTimeout(function () {
+      el.style.transition = 'opacity .3s, transform .3s';
+      el.style.opacity = '0'; el.style.transform = 'translateY(8px)';
+      setTimeout(function () { if (el.parentNode) el.remove(); }, 320);
+    }, 2600);
+  }
+
+  function fmtBytes(n) {
+    if (!n) return '0 B';
+    var u = ['B', 'KB', 'MB', 'GB', 'TB']; var i = 0;
+    while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+    return (i === 0 ? n : n.toFixed(n < 10 ? 2 : 1)) + ' ' + u[i];
+  }
+  function fmtNum(n) { return (n || 0).toLocaleString('en-US'); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+
+  async function api(path, opts) {
+    opts = opts || {};
+    var res = await fetch(path, {
+      method: opts.method || 'GET',
+      headers: opts.body ? { 'content-type': 'application/json' } : {},
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+      credentials: 'same-origin',
+    });
+    var data = null;
+    try { data = await res.json(); } catch (e) { data = null; }
+    if (res.status === 401 && state.authed) { state.authed = false; renderAuth(); throw new Error('unauthorized'); }
+    if (!res.ok) {
+      var m = (data && data.error) || ('HTTP ' + res.status);
+      var err = new Error(m); err.status = res.status; err.data = data; throw err;
+    }
+    return data;
+  }
+
+  async function copyText(txt, okMsg) {
+    try {
+      if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(txt);
+      else {
+        var ta = h('textarea', { value: txt });
+        ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+      }
+      toast(okMsg || t('copied'), 'ok');
+    } catch (e) { toast('Copy failed — select and copy manually', 'err'); }
+  }
+
+  function modal(opts) {
+    var back = h('div', { class: 'backdrop' });
+    var box = h('div', { class: 'modal' + (opts.wide ? ' wide' : '') });
+    box.appendChild(h('h3', { text: opts.title }));
+    if (opts.sub) box.appendChild(h('div', { class: 'msub', text: opts.sub }));
+    if (opts.body) box.appendChild(typeof opts.body === 'string' ? h('div', { html: opts.body }) : opts.body);
+    if (opts.foot) box.appendChild(h('div', { class: 'modal-foot' }, opts.foot));
+    back.appendChild(box);
+    back.addEventListener('click', function (e) { if (e.target === back) close(); });
+    document.body.appendChild(back);
+    function close() { if (back.parentNode) back.remove(); document.removeEventListener('keydown', onKey); }
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    document.addEventListener('keydown', onKey);
+    var first = box.querySelector('input,select,textarea');
+    if (first) setTimeout(function () { first.focus(); }, 40);
+    return { close: close, box: box };
+  }
+
+  function ask(msg, onYes) {
+    var ref = {};
+    var m = modal({
+      title: msg,
+      foot: [btn(t('cancel'), { onclick: function () { ref.m.close(); } }),
+             btn('OK', { kind: 'primary', onclick: function () { ref.m.close(); onYes(); } })],
+    });
+    ref.m = m;
+    return m;
+  }
+
+  function field(label, control, hint) {
+    var f = h('div', { class: 'field' });
+    if (label) f.appendChild(h('label', { text: label }));
+    f.appendChild(control);
+    if (hint) f.appendChild(h('div', { class: 'hint', text: hint }));
+    return f;
+  }
+
+  function notice(kind, title, text) {
+    var n = h('div', { class: 'notice ' + kind });
+    var ic = icon(kind === 'info' ? 'info' : 'alert');
+    ic.setAttribute('class', 'ic');
+    n.appendChild(ic);
+    n.appendChild(h('div', {}, h('b', { text: title }), h('p', { html: text })));
+    return n;
+  }
+
+  function download(name, text, type) {
+    var blob = new Blob([text], { type: type || 'text/plain' });
+    var a = h('a', { href: URL.createObjectURL(blob), download: name });
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); if (a.parentNode) a.remove(); }, 800);
+  }
+
+  /* ---------------------------------------------------------------- auth */
+
+  function renderAuth() {
+    var root = document.getElementById('root');
+    if (!root) return;
+    root.innerHTML = '';
+    root.setAttribute('aria-busy', 'false');
+    var isSetup = !state.configured;
+
+    var mark = h('div', { class: 'brand-mark', html: ICONS.logo });
+    var card = h('div', { class: 'auth-card' },
+      h('div', { class: 'brand' }, mark,
+        h('div', { class: 'brand-txt' },
+          h('b', { text: BOOT.panelName || 'Luncher' }),
+          h('span', { text: 'v' + (BOOT.version || '1.0.0') }))),
+      h('h1', { text: isSetup ? t('setupTitle') : t('signIn') }),
+      h('div', { class: 'msub', text: isSetup ? t('setupSub') : t('loginSub') }));
+
+    var pass = h('input', { type: 'password', placeholder: '••••••••', autocomplete: isSetup ? 'new-password' : 'current-password' });
+    var err = h('div', { class: 'notice danger', style: 'display:none' });
+    var submit = btn(isSetup ? t('setPassword') : t('login'), { kind: 'primary' });
+    submit.style.width = '100%';
+    var langBtn = btn(lang === 'fa' ? 'English' : 'فارسی', { kind: 'ghost' });
+    langBtn.style.width = '100%';
+    langBtn.addEventListener('click', toggleLang);
+
+    card.appendChild(field(t('password'), pass));
+    card.appendChild(err);
+    card.appendChild(submit);
+    card.appendChild(h('div', { style: 'margin-top:10px' }, langBtn));
+
+    async function go() {
+      submit.disabled = true; err.style.display = 'none';
+      try {
+        if (isSetup) { await api('/api/setup', { method: 'POST', body: { password: pass.value } }); state.configured = true; }
+        await api('/api/login', { method: 'POST', body: { password: pass.value } });
+        state.authed = true;
+        await boot();
+      } catch (e) {
+        err.style.display = 'flex'; err.innerHTML = '';
+        var ic = icon('alert'); ic.setAttribute('class', 'ic'); err.appendChild(ic);
+        err.appendChild(h('div', {}, h('p', { text: e.message })));
+      } finally { submit.disabled = false; pass.value = ''; }
+    }
+    submit.addEventListener('click', go);
+    pass.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
+
+    root.appendChild(h('div', { class: 'auth-wrap' }, card));
+    setTimeout(function () { pass.focus(); }, 60);
+  }
+
+  /* --------------------------------------------------------------- shell */
+
+  var NAV = [
+    { group: 'navMain', items: [{ id: 'dash', icon: 'gauge' }, { id: 'users', icon: 'users' }, { id: 'configs', icon: 'link' }] },
+    { group: 'navTunnel', items: [{ id: 'antidpi', icon: 'shield' }, { id: 'relays', icon: 'route' }] },
+    { group: 'navSystem', items: [{ id: 'diag', icon: 'pulse' }, { id: 'settings', icon: 'cog' }] },
+  ];
+
+  function renderShell() {
+    var root = document.getElementById('root');
+    root.innerHTML = '';
+    root.setAttribute('aria-busy', 'false');
+
+    var side = h('aside', { class: 'sidebar', id: 'sidebar' });
+    side.appendChild(h('div', { class: 'brand' },
+      h('div', { class: 'brand-mark', html: ICONS.logo }),
+      h('div', { class: 'brand-txt' },
+        h('b', { text: (state.settings && state.settings.panelName) || BOOT.panelName || 'Luncher' }),
+        h('span', { text: t('appTagline') }))));
+
+    NAV.forEach(function (g) {
+      side.appendChild(h('div', { class: 'nav-label', text: t(g.group) }));
+      g.items.forEach(function (it) {
+        var a = h('a', {
+          class: 'nav-item' + (state.view === it.id ? ' active' : ''), href: '#' + it.id,
+          onclick: function (e) { e.preventDefault(); go(it.id); side.classList.remove('open'); },
+        });
+        a.appendChild(icon(it.icon));
+        a.appendChild(h('span', { text: t(it.id) }));
+        if (it.id === 'users' && state.users.length) a.appendChild(h('span', { class: 'pill', text: String(state.users.length) }));
+        side.appendChild(a);
+      });
+    });
+
+    var b = state.overview && state.overview.budget;
+    var foot = h('div', { class: 'side-foot' });
+    if (b) {
+      var cls = b.mode === 'critical' ? 'danger' : b.mode === 'throttled' ? 'warn' : '';
+      foot.appendChild(h('div', { class: 'card', style: 'padding:12px' },
+        h('div', { style: 'font-size:10.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px;font-weight:650', text: t('dailyBudget') }),
+        h('div', { class: 'gauge ' + cls },
+          h('div', { class: 'track' }, h('i', { class: 'fill', style: 'width:' + Math.min(100, b.pct) + '%' })),
+          h('div', { class: 'scale' }, h('span', { text: fmtNum(b.requests) }), h('span', { text: b.pct.toFixed(1) + '%' })))));
+    }
+    foot.appendChild(h('div', { style: 'display:flex;gap:7px;flex-wrap:wrap' },
+      h('span', { class: 'badge ' + (state.overview && state.overview.backend === 'memory' ? 'warn' : 'cool') },
+        h('span', { class: 'dot' }), state.overview ? state.overview.backend : '…'),
+      h('span', { class: 'badge' }, 'v' + (state.overview ? state.overview.version : BOOT.version))));
+    foot.appendChild(btn(t('logout'), { kind: 'ghost', icon: 'logout', onclick: doLogout }));
+    side.appendChild(foot);
+
+    var menuBtn = btn('', { kind: 'ghost menu-btn', icon: 'menu', onclick: function () { side.classList.toggle('open'); } });
+    var top = h('div', { class: 'topbar' }, menuBtn,
+      h('h2', { id: 'pageTitle', text: t(state.view) }),
+      h('div', { class: 'spacer' }),
+      btn(lang === 'fa' ? 'EN' : 'فا', { kind: 'ghost', onclick: toggleLang }),
+      btn('', { kind: 'ghost', icon: 'refresh', onclick: reload }));
+
+    root.appendChild(h('div', { class: 'shell' }, side,
+      h('main', { class: 'main' }, top, h('div', { class: 'view', id: 'view' }))));
+    renderView();
+  }
+
+  function toggleLang() {
+    lang = lang === 'fa' ? 'en' : 'fa';
+    try { localStorage.setItem(LS_LANG, lang); } catch (e) { /* private mode */ }
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
+    if (state.authed) renderShell(); else renderAuth();
+  }
+
+  function go(v) {
+    state.view = v;
+    if (location.hash !== '#' + v) history.replaceState(null, '', '#' + v);
+    var tt = document.getElementById('pageTitle'); if (tt) tt.textContent = t(v);
+    document.querySelectorAll('.nav-item').forEach(function (a) { a.classList.toggle('active', a.getAttribute('href') === '#' + v); });
+    renderView();
+  }
+
+  function renderView() {
+    var el = document.getElementById('view');
+    if (!el) return;
+    el.innerHTML = '';
+    var fn = VIEWS[state.view] || VIEWS.dash;
+    try { fn(el); } catch (e) { el.appendChild(notice('danger', 'Render error', esc(e.message))); }
+  }
+
+  async function doLogout() {
+    try { await api('/api/logout', { method: 'POST' }); } catch (e) { /* ignore */ }
+    state.authed = false; state.overview = null; state.users = [];
+    renderAuth();
+  }
+
+  async function reload() {
+    try {
+      var o = await api('/api/overview');
+      state.overview = o; state.settings = o.settings;
+      await loadUsers();
+      renderShell();
+    } catch (e) { toast(e.message, 'err'); }
+  }
+
+  async function loadUsers() { var r = await api('/api/users'); state.users = r.users || []; return state.users; }
+
+  function statCard(k, v, n, cls) {
+    return h('div', { class: 'card stat ' + (cls || '') },
+      h('div', { class: 'k', text: k }), h('div', { class: 'v', text: v }), h('div', { class: 'n', text: n || '' }));
+  }
+
+  /* --------------------------------------------------------------- views */
+
+  var VIEWS = {};
+
+  VIEWS.dash = function (el) {
+    var o = state.overview; if (!o) return;
+    var b = o.budget;
+
+    el.appendChild(h('div', { class: 'grid c4' },
+      statCard(t('dailyBudget'), fmtNum(b.requests), b.pct.toFixed(1) + '% of ' + fmtNum(b.daily), 'brand'),
+      statCard(t('usersActive'), String(o.users.active), o.users.total + ' ' + t('totalUsers'), 'cool'),
+      statCard(t('endpoints'), String(o.endpoints.length), o.endpoints.slice(0, 2).map(function (e) { return e.address; }).join(', ') || '—'),
+      statCard(t('relay'), o.relayConfigured ? String(o.settings.relays.length) : t('none'),
+        o.relayConfigured ? t('configured') : t('relayNotConfigured'))));
+
+    var cls = b.mode === 'critical' ? 'danger' : b.mode === 'throttled' ? 'warn' : '';
+    var msgKey = b.mode === 'critical' ? 'budgetCrit' : b.mode === 'throttled' ? 'budgetWarn' : 'budgetOk';
+    var budgetCard = h('div', { class: 'card' });
+    budgetCard.appendChild(h('div', { class: 'card-head' },
+      h('h3', { text: t('dailyBudget') }),
+      h('span', { class: 'sub' }, b.estimated ? '~estimated (sampled)' : 'exact')));
+    budgetCard.appendChild(h('div', { class: 'gauge ' + cls },
+      h('div', { class: 'track' }, h('i', { class: 'fill', style: 'width:' + Math.min(100, b.pct) + '%' })),
+      h('div', { class: 'scale' },
+        h('span', { text: fmtNum(b.requests) + ' ' + t('requests') }),
+        h('span', { text: b.pct.toFixed(2) + '%' }),
+        h('span', { text: fmtNum(b.daily) }))));
+    budgetCard.appendChild(h('div', { style: 'margin-top:12px' },
+      notice(b.mode === 'ok' ? 'info' : b.mode === 'throttled' ? 'warn' : 'danger', t(msgKey),
+        'Cloudflare bills a proxy Worker one request per connection. See <code>docs/limits.md</code>.')));
+    el.appendChild(budgetCard);
+
+    if (o.backend === 'memory') {
+      el.appendChild(notice('warn', 'Storage is not bound',
+        'The panel is in <b>solo mode</b>: users and settings live in isolate memory and disappear when it is evicted. Bind a D1 database or a KV namespace — see <code>docs/deploy.md</code>.'));
+    }
+
+    var report = o.settings.report || [];
+    if (report.length) {
+      var rc = h('div', { class: 'card' }, h('div', { class: 'card-head' }, h('h3', { text: 'Health checks' })));
+      report.forEach(function (r) { rc.appendChild(notice(r.level === 'warn' ? 'warn' : 'info', r.key, esc(r.text))); });
+      el.appendChild(rc);
+    }
+
+    el.appendChild(h('div', { class: 'card' },
+      h('div', { class: 'card-head' }, h('h3', { text: t('quickActions') })),
+      h('div', { style: 'display:flex;gap:9px;flex-wrap:wrap' },
+        btn(t('newUser'), { kind: 'primary', icon: 'plus', onclick: function () { userModal(null); } }),
+        btn(t('configs'), { icon: 'link', onclick: function () { go('configs'); } }),
+        btn(t('antidpi'), { icon: 'shield', onclick: function () { go('antidpi'); } }),
+        btn(t('egressTest'), { icon: 'globe', onclick: function () { go('diag'); } }))));
+
+    var ep = h('div', { class: 'card' }, h('div', { class: 'card-head' },
+      h('h3', { text: t('endpoints') }), h('span', { class: 'sub' }, esc(o.requestHost))));
+    var dl = h('dl', { class: 'kv' });
+    o.endpoints.forEach(function (e) { dl.appendChild(h('dt', { text: e.label })); dl.appendChild(h('dd', { text: e.address + ':' + e.port })); });
+    // `t()` falls back to the key itself, so `t(k) || k` can never fall through:
+    // an untranslated key renders verbatim. Every label here must be a real key.
+    [['wsPath', o.settings.wsPath], ['preset', o.settings.preset],
+     ['backend', o.backend], ['fingerprint', o.settings.fp]]
+      .forEach(function (p) { dl.appendChild(h('dt', { text: t(p[0]) })); dl.appendChild(h('dd', { text: String(p[1]) })); });
+    ep.appendChild(dl);
+    el.appendChild(ep);
+  };
+
+  VIEWS.users = function (el) {
+    var q = h('input', { placeholder: t('search'), style: 'max-width:260px' });
+    q.addEventListener('input', draw);
+    el.appendChild(h('div', { style: 'display:flex;gap:9px;margin-bottom:14px;flex-wrap:wrap;align-items:center' },
+      q, h('div', { style: 'flex:1' }),
+      btn(t('refresh'), { kind: 'ghost', icon: 'refresh', onclick: function () { loadUsers().then(draw); } }),
+      btn(t('newUser'), { kind: 'primary', icon: 'plus', onclick: function () { userModal(null); } })));
+    var host = h('div'); el.appendChild(host);
+
+    function draw() {
+      host.innerHTML = '';
+      var term = (q.value || '').toLowerCase();
+      var list = state.users.filter(function (u) {
+        return !term || (u.name || '').toLowerCase().indexOf(term) >= 0 || (u.uuid || '').toLowerCase().indexOf(term) >= 0;
+      });
+      if (!list.length) {
+        host.appendChild(h('div', { class: 'card empty' },
+          h('div', { html: ICONS.users, style: 'opacity:.3;margin-bottom:12px' }),
+          h('p', { text: term ? '—' : t('noUsers') }),
+          term ? null : h('p', { class: 'hint', text: t('noUsersHint') })));
+        return;
+      }
+      var tb = h('table');
+      tb.appendChild(h('thead', {}, h('tr', {},
+        h('th', { text: t('name') }), h('th', { text: t('status') }), h('th', { text: t('quota') }),
+        h('th', { text: t('expiry') }), h('th', { text: t('protocol') }), h('th', { text: t('actions') }))));
+      var body = h('tbody');
+      list.forEach(function (u) { body.appendChild(userRow(u)); });
+      tb.appendChild(body);
+      host.appendChild(h('div', { class: 'card', style: 'padding:0;overflow:hidden' }, h('div', { class: 'table-wrap' }, tb)));
+    }
+
+    function userRow(u) {
+      var qq = u.quota || {};
+      var tr = h('tr');
+      tr.appendChild(h('td', {}, h('div', { class: 'who' }, u.name, h('small', { text: (u.uuid || '').slice(0, 18) + '…' }))));
+
+      var st = !u.enabled ? h('span', { class: 'badge' }, t('disabled'))
+        : qq.active ? h('span', { class: 'badge ok' }, h('span', { class: 'dot' }), t('active'))
+        : h('span', { class: 'badge danger' }, h('span', { class: 'dot' }), qq.expired ? t('expired') : 'quota');
+      tr.appendChild(h('td', {}, st));
+
+      var qc = h('td', { class: 'num' });
+      if (qq.quotaBytes) {
+        qc.appendChild(h('div', { text: fmtBytes(qq.usedBytes) + ' / ' + (Math.round(qq.quotaBytes / 10737418.24) / 100) + ' GB' }));
+        qc.appendChild(h('div', { class: 'mini-bar' + (qq.usedPct > 85 ? ' hot' : ''), style: 'margin-top:5px' }, h('i', { style: 'width:' + (qq.usedPct || 0) + '%' })));
+      } else qc.appendChild(h('span', { style: 'color:var(--faint)', text: t('unlimited') }));
+      tr.appendChild(qc);
+
+      tr.appendChild(h('td', { class: 'num' }, qq.daysLeft === null || qq.daysLeft === undefined
+        ? t('unlimited') : (qq.expired ? t('expired') : qq.daysLeft + ' ' + t('daysLeft'))));
+      tr.appendChild(h('td', {}, h('div', { class: 'chips' },
+        u.uuid ? h('span', { class: 'chip on' }, 'VLESS') : null,
+        u.trojan_pass ? h('span', { class: 'chip' }, 'Trojan') : null)));
+      var acts = h('div', { style: 'display:flex;gap:5px;flex-wrap:wrap' });
+      acts.appendChild(btn(t('viewConfigs'), { kind: 'ghost sm', icon: 'link', onclick: function () { openConfigs(u); } }));
+      acts.appendChild(btn('', { kind: 'ghost sm', icon: 'edit', onclick: function () { userModal(u); } }));
+      acts.appendChild(btn('', { kind: 'ghost sm', icon: 'key', onclick: function () { ask(t('confirmRotate'), function () { rotate(u); }); } }));
+      acts.appendChild(btn('', { kind: 'ghost sm', icon: 'refresh', onclick: function () { resetUsage(u); } }));
+      acts.appendChild(btn('', { kind: 'danger sm', icon: 'trash', onclick: function () { ask(t('confirmDelete'), function () { del(u); }); } }));
+      tr.appendChild(h('td', {}, acts));
+      return tr;
+    }
+
+    async function rotate(u) { try { await api('/api/users/' + u.id + '/rotate', { method: 'POST' }); toast(t('rotated'), 'ok'); await loadUsers(); draw(); } catch (e) { toast(e.message, 'err'); } }
+    async function resetUsage(u) { try { await api('/api/users/' + u.id + '/reset', { method: 'POST' }); toast(t('saved'), 'ok'); await loadUsers(); draw(); } catch (e) { toast(e.message, 'err'); } }
+    async function del(u) { try { await api('/api/users/' + u.id, { method: 'DELETE' }); toast(t('deleted'), 'ok'); await loadUsers(); draw(); } catch (e) { toast(e.message, 'err'); } }
+
+    draw();
+  };
+
+  var PRESET_IDS = ['none', 'balanced', 'mci', 'irancell', 'rightel', 'tci', 'gaming', 'maxStealth', 'pattngClassic'];
+
+  function userModal(u) {
+    var editing = !!u;
+    var name = h('input', { value: u ? u.name : '', placeholder: 'Ali' });
+    var uuid = h('input', { value: u ? u.uuid : '', placeholder: 'auto', style: 'direction:ltr;font-family:var(--mono);font-size:12px' });
+    var tpass = h('input', { value: u ? (u.trojan_pass || '') : '', placeholder: 'auto', style: 'direction:ltr;font-family:var(--mono);font-size:12px' });
+    var quota = h('input', { type: 'number', min: '0', step: '0.5', value: u ? (u.quota_gb || 0) : 0 });
+    var days = h('input', { type: 'number', min: '0', step: '1', value: u ? (u.expire_days || 0) : 0 });
+    var ips = h('input', { type: 'number', min: '0', step: '1', value: u ? (u.max_ips || 0) : 0 });
+    var note = h('textarea', { value: u ? (u.note || '') : '' });
+    var enabled = h('input', { type: 'checkbox', checked: u ? !!u.enabled : true });
+
+    var preset = h('select');
+    var known = (state.overview && state.overview.presets && state.overview.presets.length)
+      ? state.overview.presets.map(function (p) { return { id: p.id, label: (lang === 'fa' ? p.labelFa : p.label) }; })
+      : PRESET_IDS.map(function (p) { return { id: p, label: p }; });
+    preset.appendChild(h('option', { value: '', text: '— ' + ((state.settings && state.settings.preset) || 'balanced') + ' —', selected: !u || !u.preset }));
+    known.forEach(function (p) { preset.appendChild(h('option', { value: p.id, text: p.label + ' · ' + p.id, selected: !!u && u.preset === p.id })); });
+
+    var body = h('div', {},
+      field(t('name'), name),
+      h('div', { class: 'field-row' }, field('UUID (VLESS)', uuid), field('Trojan password', tpass)),
+      h('div', { class: 'field-row' },
+        field(t('quotaGb'), quota, t('zeroUnlimited')),
+        field(t('expireDays'), days, t('zeroUnlimited')),
+        field(t('maxIps'), ips, t('zeroUnlimited'))),
+      field(t('preset'), preset, 'Overrides the global preset for this user only.'),
+      field(t('note'), note),
+      h('label', { class: 'switch' }, enabled, h('span', { class: 'track' }), h('span', { class: 'lbl' }, t('active'))));
+
+    var save = btn(editing ? t('save') : t('create'), { kind: 'primary', icon: 'check' });
+    var ref = {};
+    ref.m = modal({ title: editing ? t('edit') + ' · ' + u.name : t('newUser'), body: body,
+      foot: [btn(t('cancel'), { onclick: function () { ref.m.close(); } }), save] });
+
+    save.addEventListener('click', async function () {
+      save.disabled = true;
+      var payload = {
+        name: name.value, uuid: uuid.value || undefined, trojanPass: tpass.value || undefined,
+        quota_gb: Number(quota.value) || 0, expire_days: Number(days.value) || 0, max_ips: Number(ips.value) || 0,
+        preset: preset.value, note: note.value, enabled: enabled.checked,
+      };
+      try {
+        var res = editing ? await api('/api/users/' + u.id, { method: 'PATCH', body: payload })
+                          : await api('/api/users', { method: 'POST', body: payload });
+        toast(editing ? t('saved') : t('created'), 'ok');
+        await loadUsers();
+        ref.m.close();
+        if (!editing && res && res.user) { state.focusUser = res.user; go('configs'); } else renderView();
+      } catch (e) { toast(e.message, 'err'); save.disabled = false; }
+    });
+  }
+
+  /* ------------------------------------------------------------- configs */
+
+  var CLIENT_LABELS = { pattng: 'PattNG / PattN', v2rayng: 'v2rayNG / NekoBox', hiddify: 'Hiddify', streisand: 'Streisand / Happ', plain: 'Plain (no fragment)' };
+  var CLIENT_IDS = ['pattng', 'v2rayng', 'hiddify', 'streisand', 'plain'];
+
+  VIEWS.configs = function (el) {
+    if (!state.users.length) {
+      el.appendChild(h('div', { class: 'card empty' },
+        h('div', { html: ICONS.link, style: 'opacity:.3;margin-bottom:12px' }),
+        h('p', { text: t('noUsers') }), h('p', { class: 'hint', text: t('noUsersHint') }),
+        h('div', { style: 'margin-top:14px' }, btn(t('newUser'), { kind: 'primary', icon: 'plus', onclick: function () { userModal(null); } }))));
+      return;
+    }
+    var pick = h('select');
+    state.users.forEach(function (u) { pick.appendChild(h('option', { value: u.id, text: u.name })); });
+    if (state.focusUser) pick.value = state.focusUser.id;
+    pick.addEventListener('change', function () { show(pick.value); });
+
+    el.appendChild(h('div', { class: 'card', style: 'padding:14px' },
+      h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' },
+        h('span', { style: 'font-size:13px;color:var(--muted)', text: t('users') + ':' }), pick,
+        h('div', { style: 'flex:1' }),
+        btn(t('refresh'), { kind: 'ghost', icon: 'refresh', onclick: function () { show(pick.value); } }))));
+
+    var host = h('div'); el.appendChild(host);
+    function show(id) {
+      var u = state.users.find(function (x) { return x.id === id; }) || state.users[0];
+      state.focusUser = u;
+      drawConfigs(u, host);
+    }
+    show(state.focusUser ? state.focusUser.id : state.users[0].id);
+  };
+
+  function openConfigs(u) { state.focusUser = u; go('configs'); }
+
+  function drawConfigs(u, host) {
+    host.innerHTML = '';
+    host.appendChild(h('div', { class: 'card' },
+      h('div', { class: 'skel', style: 'width:55%' }),
+      h('div', { class: 'skel', style: 'width:92%;margin-top:9px' }),
+      h('div', { class: 'skel', style: 'width:78%;margin-top:9px' })));
+
+    api('/api/users/' + u.id + '/configs').then(function (r) {
+      host.innerHTML = '';
+
+      var tabs = h('div', { class: 'tabs', style: 'margin-bottom:14px' });
+      CLIENT_IDS.forEach(function (c) {
+        tabs.appendChild(h('button', { class: state.client === c ? 'on' : '', text: CLIENT_LABELS[c],
+          onclick: function () { state.client = c; drawConfigs(u, host); } }));
+      });
+      host.appendChild(tabs);
+
+      var links = (r.links || []).filter(function (l) { return l.client === state.client; });
+      if (!links.length) links = r.links || [];
+
+      var lc = h('div', { class: 'card' },
+        h('div', { class: 'card-head' }, h('h3', { text: CLIENT_LABELS[state.client] }),
+          h('span', { class: 'sub' }, links.length + ' configs')));
+      links.forEach(function (l) {
+        lc.appendChild(h('div', { class: 'linkrow' },
+          h('div', { class: 'meta' },
+            h('b', {}, l.remark, ' ', h('span', { class: 'badge' }, (l.protocol || '').toUpperCase()),
+              l.endpoint ? h('span', { class: 'badge cool' }, l.endpoint) : null),
+            h('code', { text: l.link })),
+          h('div', { class: 'acts' },
+            btn('', { kind: 'ghost sm', icon: 'copy', onclick: function () { copyText(l.link); } }),
+            btn('', { kind: 'ghost sm', icon: 'qr', onclick: function () { qrModal(l.link, l.remark); } }))));
+      });
+      host.appendChild(lc);
+
+      var sub = h('div', { class: 'card' }, h('div', { class: 'card-head' }, h('h3', { text: t('subLink') })));
+      var subUrl = r.subUrl + '?client=' + state.client;
+      var jsonUrl = r.subUrl + '/json';
+      [
+        ['Subscription (' + CLIENT_LABELS[state.client] + ')', subUrl, true],
+        ['Xray JSON subscription', jsonUrl, false],
+        [t('statusPage'), r.statusUrl, false],
+      ].forEach(function (row) {
+        sub.appendChild(h('div', { class: 'linkrow' },
+          h('div', { class: 'meta' }, h('b', { text: row[0] }), h('code', { text: row[1] })),
+          h('div', { class: 'acts' },
+            btn('', { kind: 'ghost sm', icon: 'copy', onclick: function () { copyText(row[1]); } }),
+            btn('', { kind: 'ghost sm', icon: 'qr', onclick: function () { qrModal(row[1], row[0]); } }),
+            row[2] ? null : btn('', { kind: 'ghost sm', icon: 'globe', onclick: function () { window.open(row[1], '_blank', 'noopener'); } }))));
+      });
+      host.appendChild(sub);
+
+      var jc = h('div', { class: 'card' },
+        h('div', { class: 'card-head' }, h('h3', { text: 'Xray JSON' }),
+          h('span', { class: 'sub' }, (state.settings && state.settings.jsonStyle) || 'finalmask')));
+      var pre = h('pre', { style: 'max-height:340px;overflow:auto;background:rgba(0,0,0,.35);padding:13px;border-radius:12px;border:1px solid var(--border);font-size:11.5px;line-height:1.6;direction:ltr;text-align:left;margin:0' });
+      pre.textContent = JSON.stringify(r.json, null, 2);
+      jc.appendChild(pre);
+      jc.appendChild(h('div', { style: 'display:flex;gap:8px;margin-top:11px' },
+        btn(t('copy'), { kind: 'ghost sm', icon: 'copy', onclick: function () { copyText(pre.textContent); } }),
+        btn(t('downloadJson'), { kind: 'ghost sm', icon: 'download', onclick: function () { download('luncher-' + u.name + '.json', pre.textContent, 'application/json'); } })));
+      host.appendChild(jc);
+    }).catch(function (e) {
+      host.innerHTML = '';
+      host.appendChild(notice('danger', 'Failed to build configs', esc(e.message)));
+    });
+  }
+
+  async function qrModal(text, title) {
+    var box = h('div', { class: 'qrbox' }, h('span', { class: 'spin' }));
+    var hint = h('div', { class: 'qr-hint' });
+    var ref = {};
+    ref.m = modal({
+      title: title || t('qrTitle'),
+      body: h('div', {}, box, hint,
+        h('div', { class: 'mono-list', style: 'margin-top:12px;max-height:110px;overflow:auto', text: text })),
+      foot: [btn(t('copy'), { icon: 'copy', onclick: function () { copyText(text); } }),
+             btn(t('download'), { icon: 'download', onclick: function () {
+               var svg = box.querySelector('svg');
+               if (!svg) return toast(t('qrNothing'), 'err');
+               download(new XMLSerializer().serializeToString(svg), 'luncher-qr.svg', 'image/svg+xml');
+             } }),
+             btn(t('close'), { kind: 'primary', onclick: function () { ref.m.close(); } })],
+    });
+    try {
+      var res = await fetch('/api/qr?t=' + encodeURIComponent(text));
+      if (!res.ok) {
+        // Report what the server actually said. Guessing from the text length
+        // produced a misleading message once the capacity limit was raised: a
+        // 918-character PattNG link is perfectly encodable.
+        var detail = '';
+        try { detail = (await res.json()).error || ''; } catch (ignore) { /* non-JSON body */ }
+        throw new Error(detail || ('HTTP ' + res.status));
+      }
+      var svgText = await res.text();
+      box.innerHTML = svgText;
+
+      // The server reports which error-correction level and version it settled
+      // on. High versions are dense and genuinely hard for a phone camera, so
+      // say so instead of presenting an unscannable square as a success.
+      var version = Number(res.headers.get('x-luncher-qr-version') || 0);
+      var ec = res.headers.get('x-luncher-qr-ec') || '';
+      var size = res.headers.get('x-luncher-qr-size') || '';
+      if (version >= 20) {
+        hint.appendChild(notice('warn', t('qrDenseTitle'),
+          esc(t('qrDenseText')).replace('{v}', String(version)).replace('{n}', String(size)).replace('{ec}', ec)));
+      } else if (version) {
+        hint.appendChild(h('div', { class: 'qr-meta',
+          text: t('qrMeta') + ' · v' + version + ' · ' + size + '×' + size + ' · EC ' + ec }));
+      }
+    } catch (e) {
+      box.innerHTML = '';
+      box.style.background = 'transparent';
+      box.appendChild(h('div', { style: 'color:#ffc9c9;font-size:13px;padding:16px;text-align:center', text: e.message }));
+      hint.appendChild(notice('info', t('qrFailedTitle'), esc(t('qrFailedText'))));
+    }
+  }
+
+  /* ------------------------------------------------------------ anti-DPI */
+
+  // Fallbacks are only used if /api/overview is unavailable; the Worker is the
+  // source of truth for every enum below.
+  var FINGERPRINT_FALLBACK = ['unsafe', 'chrome', 'firefox', 'safari', 'ios', 'android', 'edge', 'randomized'];
+  var CS_FALLBACK = ['standard', 'chacha', 'minimal'];
+  var DECOY_FALLBACK = ['www.cloudflare.com', 'developers.cloudflare.com', 'www.hcaptcha.com'];
+
+  VIEWS.antidpi = function (el) {
+    var s = state.settings; if (!s) return;
+    var o = state.overview || {};
+
+    var card = h('div', { class: 'card' },
+      h('div', { class: 'card-head' }, h('h3', { text: t('presets') }), h('span', { class: 'sub' }, esc(s.preset))));
+    card.appendChild(notice('info', t('fragExplainer'), esc(t('fragExplainerText'))));
+
+    var presets = (state.overview && state.overview.presets && state.overview.presets.length)
+      ? state.overview.presets
+      : PRESET_IDS.map(function (id) { return { id: id, label: id, labelFa: id, note: '' }; });
+
+    var grid = h('div', { class: 'grid c3', style: 'margin-top:14px' });
+    presets.forEach(function (p) {
+      var on = s.preset === p.id;
+      var c = h('div', {
+        class: 'card',
+        style: 'cursor:pointer;padding:14px;margin:0;' +
+          (on ? 'border-color:rgba(255,169,77,.45);background:linear-gradient(135deg,rgba(255,169,77,.14),rgba(255,122,89,.05))' : ''),
+      });
+      c.appendChild(h('div', { style: 'display:flex;align-items:center;gap:8px;margin-bottom:6px' },
+        h('b', { style: 'font-size:13.5px', text: lang === 'fa' ? (p.labelFa || p.label) : p.label }),
+        on ? h('span', { class: 'badge ok' }, h('span', { class: 'dot' }), 'on') : null));
+      c.appendChild(h('div', { style: 'font-family:var(--mono);font-size:10.5px;color:var(--faint);direction:ltr;text-align:left', text: p.id }));
+      if (p.note) c.appendChild(h('div', { style: 'font-size:12px;color:var(--muted);margin-top:7px;line-height:1.6', text: p.note }));
+      c.addEventListener('click', function () { save({ preset: p.id }); });
+      grid.appendChild(c);
+    });
+    card.appendChild(grid);
+    el.appendChild(card);
+
+    var stealth = h('div', { class: 'card' }, h('div', { class: 'card-head' }, h('h3', { text: 'TLS stealth' })));
+
+    var cs = h('select');
+    ((o.cipherSuites && o.cipherSuites.length) ? o.cipherSuites : CS_FALLBACK).forEach(function (k) {
+      cs.appendChild(h('option', { value: k, text: k, selected: s.cs === k }));
+    });
+    cs.addEventListener('change', function () { save({ cs: cs.value }); });
+    stealth.appendChild(field(t('cipherSuites'), cs, t('csHint')));
+
+    // Options come from the Worker so this select can never drift out of sync
+    // with what presets.js actually accepts. 'unsafe' first: it is the default
+    // and the one that matters for Iranian DPI.
+    var fpList = (o.fingerprints && o.fingerprints.length ? o.fingerprints.slice() : FINGERPRINT_FALLBACK);
+    fpList.sort(function (a, b) { return (a === 'unsafe' ? -1 : b === 'unsafe' ? 1 : 0); });
+    var fp = h('select');
+    fpList.forEach(function (k) {
+      fp.appendChild(h('option', { value: k, text: k, selected: s.fp === k }));
+    });
+    fp.addEventListener('change', function () { save({ fp: fp.value }); });
+    stealth.appendChild(field(t('fingerprint'), fp, t('fpHint')));
+
+    var sm = h('select');
+    sm.appendChild(h('option', { value: 'real', text: t('sniReal'), selected: s.sniMode === 'real' }));
+    sm.appendChild(h('option', { value: 'decoy', text: t('sniDecoy'), selected: s.sniMode === 'decoy' }));
+    sm.addEventListener('change', function () { save({ sniMode: sm.value }); });
+    stealth.appendChild(field(t('sniMode'), sm, t('decoyHint')));
+
+    var decoy = h('input', { value: s.decoy || '', list: 'luncher-decoys', style: 'direction:ltr' });
+    var dl = h('datalist', { id: 'luncher-decoys' });
+    ((o.decoys && o.decoys.length) ? o.decoys : DECOY_FALLBACK).forEach(function (d) {
+      dl.appendChild(h('option', { value: d }));
+    });
+    decoy.addEventListener('change', function () { save({ decoy: decoy.value }); });
+    stealth.appendChild(field(t('decoyHost'), decoy, null));
+    stealth.appendChild(dl);
+
+    var js = h('select');
+    js.appendChild(h('option', { value: 'finalmask', text: 'finalmask — new Xray / PattNG', selected: s.jsonStyle === 'finalmask' }));
+    js.appendChild(h('option', { value: 'outbound', text: 'fragment outbound — classic v2rayNG', selected: s.jsonStyle === 'outbound' }));
+    js.addEventListener('change', function () { save({ jsonStyle: js.value }); });
+    stealth.appendChild(field(t('jsonStyle'), js,
+      'finalmask needs a recent Xray-core (PattNG ships one). The classic form chains a freedom outbound and works on older cores.'));
+
+    var ed = h('input', { type: 'number', min: '0', max: '4096', step: '256', value: s.earlyData });
+    ed.addEventListener('change', function () { save({ earlyData: Number(ed.value) }); });
+    stealth.appendChild(field(t('earlyData'), ed,
+      'Sends the protocol header inside the WebSocket handshake, saving a round trip on every connection.'));
+    el.appendChild(stealth);
+
+    var ips = h('div', { class: 'card' }, h('div', { class: 'card-head' }, h('h3', { text: t('cleanIps') })));
+    ips.appendChild(notice('info', 'Clean IPs', esc(t('ipHint'))));
+    ips.appendChild(ipEditor(t('cleanIps'), s.cleanIps || [], 'cleanIps'));
+    ips.appendChild(ipEditor(t('cleanIp6'), s.cleanIp6 || [], 'cleanIp6'));
+    var ranges = state.overview && state.overview.cfRanges;
+    if (ranges) {
+      ips.appendChild(h('div', { class: 'divider' }));
+      ips.appendChild(h('div', { style: 'font-size:12px;color:var(--faint);margin-bottom:6px', text: t('cfRanges') }));
+      ips.appendChild(h('div', { class: 'mono-list' }, ranges.v4.join('  ·  ')));
+      ips.appendChild(h('div', { class: 'mono-list', style: 'margin-top:6px' }, ranges.v6.join('  ·  ')));
+    }
+    el.appendChild(ips);
+
+    async function save(patch) {
+      try {
+        var r = await api('/api/settings', { method: 'PUT', body: patch });
+        state.settings = r.settings;
+        toast(t('saved'), 'ok');
+        renderView();
+      } catch (e) { toast(e.message, 'err'); }
+    }
+  };
+
+  function ipEditor(label, list, key) {
+    var wrap = h('div', { style: 'margin-top:16px' });
+    wrap.appendChild(h('label', { style: 'font-size:12.5px;color:var(--muted);font-weight:580;display:block;margin-bottom:7px', text: label }));
+
+    var chips = h('div', { class: 'chips' });
+    list.forEach(function (ip) {
+      chips.appendChild(h('span', { class: 'chip on' }, ip,
+        h('button', { type: 'button', html: '&times;', onclick: function () { patch(list.filter(function (y) { return y !== ip; })); } })));
+    });
+    if (!list.length) chips.appendChild(h('span', { style: 'color:var(--faint);font-size:12.5px', text: '—' }));
+    wrap.appendChild(chips);
+
+    var inp = h('input', { placeholder: '188.114.97.6', style: 'direction:ltr;font-family:var(--mono)' });
+    var add = btn(t('addIp'), { kind: 'primary sm', icon: 'plus' });
+    add.addEventListener('click', function () {
+      var parts = (inp.value || '').split(/[,\s]+/).map(function (x) { return x.trim(); }).filter(Boolean);
+      if (!parts.length) return;
+      patch(list.concat(parts.filter(function (p) { return list.indexOf(p) < 0; })));
+    });
+    inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') add.click(); });
+    wrap.appendChild(h('div', { style: 'display:flex;gap:8px;margin-top:9px' }, inp, add));
+    wrap.appendChild(h('div', { class: 'hint', style: 'margin-top:6px', text: 'Paste a comma- or space-separated list. Invalid addresses are dropped on save.' }));
+
+    async function patch(next) {
+      var body = {}; body[key] = next;
+      try {
+        var r = await api('/api/settings', { method: 'PUT', body: body });
+        state.settings = r.settings; toast(t('saved'), 'ok'); renderView();
+      } catch (e) { toast(e.message, 'err'); }
+    }
+    return wrap;
+  }
+
+  /* -------------------------------------------------------------- relays */
+
+  VIEWS.relays = function (el) {
+    var s = state.settings; if (!s) return;
+    var relays = s.relays || [];
+
+    var card = h('div', { class: 'card' },
+      h('div', { class: 'card-head' }, h('h3', { text: t('relays') }),
+        h('span', { class: 'sub' }, relays.length + ' ' + t('configured'))));
+    card.appendChild(notice('warn', t('relayWhy'), esc(t('relayWhyText'))));
+
+    relays.forEach(function (r, i) {
+      card.appendChild(h('div', { class: 'linkrow' },
+        h('div', { class: 'meta' },
+          h('b', {}, r.name, ' ', h('span', { class: 'badge cool' }, r.type),
+            h('span', { class: 'badge' }, r.scope === 'all' ? t('scopeAll') : t('scopeSanctioned'))),
+          h('code', { text: r.host + ':' + r.port + (r.tls ? ' (tls)' : '') + (r.username ? ' (auth)' : '') })),
+        h('div', { class: 'acts' },
+          btn('', { kind: 'ghost sm', icon: 'edit', onclick: function () { relayModal(r, i); } }),
+          btn('', { kind: 'danger sm', icon: 'trash', onclick: function () {
+            save({ relays: relays.filter(function (_, j) { return j !== i; }) });
+          } }))));
+    });
+    if (!relays.length) card.appendChild(h('div', { class: 'empty' }, h('p', { text: t('noRelays') })));
+
+    card.appendChild(h('div', { style: 'margin-top:14px' },
+      btn(t('newRelay'), { kind: 'primary', icon: 'plus', onclick: function () { relayModal(null, -1); } })));
+    el.appendChild(card);
+
+    el.appendChild(h('div', { class: 'card' },
+      h('div', { class: 'card-head' }, h('h3', { text: 'Setting one up' })),
+      h('p', { style: 'color:var(--muted);font-size:13px;margin:0 0 10px', html:
+        'Any SOCKS5 or HTTP-CONNECT proxy outside Iran works: a small VPS running Dante, 3proxy, or an SSH <code>-D</code> tunnel exposed locally. ' +
+        'Cloudflare Workers can only dial a fixed set of TCP ports, so the relay must listen on one of them — <b>443 is the reliable choice</b>.' }),
+      h('div', { class: 'mono-list' }, 'SOCKS5 on 443  →  type: socks5, port: 443, tls: off\nHTTP CONNECT on 443  →  type: http, port: 443, tls: off')));
+
+    function relayModal(r, idx) {
+      var host = h('input', { value: r ? r.host : '', placeholder: 'relay.example.com', style: 'direction:ltr' });
+      var port = h('input', { type: 'number', value: r ? r.port : 443 });
+      var type = h('select');
+      type.appendChild(h('option', { value: 'socks5', text: 'SOCKS5', selected: !r || r.type === 'socks5' }));
+      type.appendChild(h('option', { value: 'http', text: 'HTTP CONNECT', selected: !!r && r.type === 'http' }));
+      var user = h('input', { value: r ? (r.username || '') : '', style: 'direction:ltr' });
+      var pass = h('input', { value: r ? (r.password || '') : '', type: 'password', style: 'direction:ltr' });
+      var scope = h('select');
+      scope.appendChild(h('option', { value: 'sanctioned', text: t('scopeSanctioned'), selected: !r || r.scope !== 'all' }));
+      scope.appendChild(h('option', { value: 'all', text: t('scopeAll'), selected: !!r && r.scope === 'all' }));
+      var tls = h('input', { type: 'checkbox', checked: r ? !!r.tls : false });
+      var name = h('input', { value: r ? r.name : '', placeholder: 'DE relay' });
+
+      var sv = btn(t('save'), { kind: 'primary', icon: 'check' });
+      var ref = {};
+      ref.m = modal({
+        title: idx >= 0 ? t('edit') + ' · ' + (r.name || '') : t('newRelay'),
+        body: h('div', {},
+          field('Name', name),
+          h('div', { class: 'field-row' }, field(t('relayHost'), host), field(t('relayPort'), port)),
+          h('div', { class: 'field-row' }, field(t('relayType'), type), field(t('relayScope'), scope)),
+          h('div', { class: 'field-row' }, field(t('relayUser'), user), field(t('relayPass'), pass)),
+          h('label', { class: 'switch' }, tls, h('span', { class: 'track' }),
+            h('span', { class: 'lbl' }, 'TLS to relay', h('small', { text: 'Only if the relay itself terminates TLS.' })))),
+        foot: [btn(t('cancel'), { onclick: function () { ref.m.close(); } }), sv],
+      });
+
+      sv.addEventListener('click', function () {
+        var rel = {
+          name: name.value || host.value.trim(), type: type.value, host: host.value.trim(),
+          port: Number(port.value) || 443, username: user.value, password: pass.value,
+          tls: tls.checked, scope: scope.value,
+        };
+        if (!rel.host) { toast('Host is required', 'err'); return; }
+        var next = relays.slice();
+        if (idx >= 0) next[idx] = rel; else next.push(rel);
+        ref.m.close();
+        save({ relays: next });
+      });
+    }
+
+    async function save(patch) {
+      try {
+        var r = await api('/api/settings', { method: 'PUT', body: patch });
+        state.settings = r.settings; toast(t('saved'), 'ok'); renderView();
+      } catch (e) { toast(e.message, 'err'); }
+    }
+  };
+
+  /* --------------------------------------------------------- diagnostics */
+
+  VIEWS.diag = function (el) {
+    var o = state.overview; if (!o) return;
+    var b = o.budget;
+
+    var eg = h('div', { class: 'card' }, h('div', { class: 'card-head' }, h('h3', { text: t('egressTest') })));
+    eg.appendChild(notice('info', 'Why this matters', esc(t('egressHint'))));
+    var relaySel = h('select');
+    relaySel.appendChild(h('option', { value: '-1', text: t('viaDirect') }));
+    (o.settings.relays || []).forEach(function (r, i) {
+      relaySel.appendChild(h('option', { value: String(i), text: t('viaRelay') + ' · ' + r.name }));
+    });
+    var out = h('div', { style: 'margin-top:12px' });
+    var run = btn(t('runTest'), { kind: 'primary', icon: 'globe' });
+    run.addEventListener('click', async function () {
+      run.disabled = true; out.innerHTML = '';
+      out.appendChild(h('div', { class: 'skel', style: 'width:45%' }));
+      try {
+        var r = await api('/api/egress', { method: 'POST', body: { relay: Number(relaySel.value) } });
+        out.innerHTML = '';
+        var dl = h('dl', { class: 'kv' });
+        [[t('exitIp'), r.exitIp || 'unknown'], [t('latency'), (r.ms || 0) + ' ms'],
+         ['Route', r.via || 'direct'], ['Target', r.target || '—'], ['Country', r.country || 'unknown']]
+          .forEach(function (row) { dl.appendChild(h('dt', { text: row[0] })); dl.appendChild(h('dd', { text: String(row[1]) })); });
+        out.appendChild(dl);
+        out.appendChild(h('div', { style: 'margin-top:12px' },
+          notice(r.sanctionRisk ? 'danger' : 'ok',
+            r.sanctionRisk ? 'Sanctioned services will likely refuse this exit IP' : 'This exit IP is not flagged as Iranian',
+            esc(r.detail || ''))));
+      } catch (e) {
+        out.innerHTML = '';
+        out.appendChild(notice('danger', 'Test failed', esc(e.message)));
+      } finally { run.disabled = false; }
+    });
+    eg.appendChild(h('div', { style: 'display:flex;gap:9px;align-items:center;flex-wrap:wrap' }, relaySel, run));
+    eg.appendChild(out);
+    el.appendChild(eg);
+
+    var bud = h('div', { class: 'card' }, h('div', { class: 'card-head' }, h('h3', { text: t('dailyBudget') })));
+    var dl = h('dl', { class: 'kv' });
+    [['Requests today', fmtNum(b.requests)], ['Daily limit', fmtNum(b.daily)],
+     ['Used', b.pct.toFixed(2) + '%'], ['Mode', b.mode], ['Bytes today', fmtBytes(b.bytes)],
+     ['Counting', b.estimated ? 'sampled (1 in 25)' : 'flushed']]
+      .forEach(function (r) { dl.appendChild(h('dt', { text: r[0] })); dl.appendChild(h('dd', { text: r[1] })); });
+    bud.appendChild(dl);
+    bud.appendChild(h('div', { style: 'margin-top:12px' }, notice('info', 'Staying inside the limit',
+      'The panel is one inlined document (1 request per load), the dashboard never polls, and subscriptions are edge-cached. Those are the real levers — see <code>docs/limits.md</code>.')));
+    el.appendChild(bud);
+
+    var ports = h('div', { class: 'card' }, h('div', { class: 'card-head' }, h('h3', { text: t('allowedPorts') })));
+    ports.appendChild(notice('info', 'Hard platform limit',
+      'Workers can only dial these TCP ports. Anything else is refused with a clear reason instead of an error 1101.'));
+    var pc = h('div', { class: 'chips' });
+    (o.workerPorts || []).forEach(function (p) { pc.appendChild(h('span', { class: 'chip' }, String(p))); });
+    ports.appendChild(pc);
+    el.appendChild(ports);
+
+    var sanc = h('div', { class: 'card' });
+    sanc.appendChild(h('div', { class: 'card-head' },
+      h('h3', { text: t('sanctionedList') }),
+      h('span', { class: 'sub' }, (o.sanctionedCount || 0) + ' domains')));
+    sanc.appendChild(notice('info', 'Routing, not magic',
+      'These destinations refuse you by <b>source IP</b>. Routing them through a relay is what unlocks them — fragmentation alone cannot.'));
+    if (o.sanctionedDomains && o.sanctionedDomains.length) {
+      var sc = h('div', { class: 'chips', style: 'margin-top:12px' });
+      o.sanctionedDomains.forEach(function (d) { sc.appendChild(h('span', { class: 'chip', text: d })); });
+      sanc.appendChild(sc);
+    }
+    el.appendChild(sanc);
+
+    var err = h('div', { class: 'card' }, h('div', { class: 'card-head' }, h('h3', { text: 'About error 1101' })));
+    err.appendChild(h('p', { style: 'color:var(--muted);font-size:13px;margin:0', html:
+      '<code>1101</code> means <i>the Worker threw a JavaScript exception</i>. It is never Cloudflare blocking you and never a censorship signal — it is always a bug: an unguarded property, an unhandled promise rejection, a <code>send()</code> on a closed socket, or dialling a port Workers may not use. ' +
+      'Every handler here is wrapped so those become ordinary HTTP responses. See <code>docs/error-1101.md</code>.' }));
+    el.appendChild(err);
+  };
+
+  /* ------------------------------------------------------------ settings */
+
+  VIEWS.settings = function (el) {
+    var s = state.settings; if (!s) return;
+    var card = h('div', { class: 'card' }, h('div', { class: 'card-head' }, h('h3', { text: t('settings') })));
+
+    var name = h('input', { value: s.panelName || 'Luncher' });
+    var title = h('input', { value: s.profileTitle || 'Luncher' });
+    var ws = h('input', { value: s.wsPath || '/luncher', style: 'direction:ltr;font-family:var(--mono)' });
+    var lsel = h('select');
+    lsel.appendChild(h('option', { value: 'fa', text: 'فارسی', selected: s.language === 'fa' }));
+    lsel.appendChild(h('option', { value: 'en', text: 'English', selected: s.language === 'en' }));
+    var cache = h('input', { type: 'number', min: '0', max: '3600', value: s.subCacheSeconds });
+    var maxl = h('input', { type: 'number', min: '1', max: '40', value: s.maxLinksPerSub });
+    var ads = h('input', { type: 'checkbox', checked: !!s.blockAds });
+    var sanc = h('input', { type: 'checkbox', checked: !!s.unlockSanctioned });
+    var useHost = h('input', { type: 'checkbox', checked: s.useWorkerHostAsAddress !== false });
+    var melli = h('input', { type: 'checkbox', checked: !!s.netMelli });
+    var melliDns = h('input', { value: s.netMelliDns || '', style: 'direction:ltr;font-family:var(--mono)', placeholder: 'https://dns.bitdns.ir/dns-query' });
+    var autodetect = h('input', { type: 'checkbox', checked: s.autoDetectClient !== false });
+
+    card.appendChild(h('div', { class: 'field-row' }, field(t('panelName'), name), field(t('profileTitle'), title)));
+    card.appendChild(field(t('wsPath'), ws,
+      'The path clients dial. Changing it invalidates every existing config.'));
+    card.appendChild(h('div', { class: 'field-row' },
+      field(t('language'), lsel), field(t('subCache'), cache), field(t('maxLinks'), maxl)));
+
+    card.appendChild(h('label', { class: 'switch' }, sanc, h('span', { class: 'track' }),
+      h('span', { class: 'lbl' }, t('unlockSanctioned'),
+        h('small', { text: 'Route Gemini / ChatGPT / Claude and similar through a relay when one is configured.' }))));
+    card.appendChild(h('label', { class: 'switch' }, ads, h('span', { class: 'track' }),
+      h('span', { class: 'lbl' }, t('blockAds'), h('small', { text: 'Adds a geosite ad-block rule to generated JSON configs.' }))));
+    card.appendChild(h('label', { class: 'switch' }, useHost, h('span', { class: 'track' }),
+      h('span', { class: 'lbl' }, 'Also offer the Worker hostname as an address',
+        h('small', { text: 'Turn off to emit clean-IP configs only.' }))));
+
+    card.appendChild(h('label', { class: 'switch' }, autodetect, h('span', { class: 'track' }),
+      h('span', { class: 'lbl' }, t('autoDetect'),
+        h('small', { text: t('autoDetectHint') }))));
+
+    // Net melli gets its own heading because the honest explanation does not fit
+    // in a one-line hint, and a toggle that overpromises is worse than no toggle.
+    card.appendChild(h('div', { class: 'card-head' }, h('h3', { text: t('netMelliTitle') })));
+    card.appendChild(h('label', { class: 'switch' }, melli, h('span', { class: 'track' }),
+      h('span', { class: 'lbl' }, t('netMelli'),
+        h('small', { text: t('netMelliHint') }))));
+    card.appendChild(field(t('netMelliDns'), melliDns, t('netMelliDnsHint')));
+    // notice() injects its text as HTML, so escape even though this string is a
+    // static translation with no user input in it.
+    card.appendChild(notice('warn', t('netMelliCaveatTitle'), esc(t('netMelliCaveat'))));
+
+    var save = btn(t('save'), { kind: 'primary', icon: 'check' });
+    save.addEventListener('click', async function () {
+      save.disabled = true;
+      try {
+        var r = await api('/api/settings', { method: 'PUT', body: {
+          panelName: name.value, profileTitle: title.value, wsPath: ws.value, language: lsel.value,
+          subCacheSeconds: Number(cache.value), maxLinksPerSub: Number(maxl.value),
+          blockAds: ads.checked, unlockSanctioned: sanc.checked, useWorkerHostAsAddress: useHost.checked,
+          netMelli: melli.checked, netMelliDns: melliDns.value.trim(), autoDetectClient: autodetect.checked } });
+        state.settings = r.settings; toast(t('saved'), 'ok'); renderShell();
+      } catch (e) { toast(e.message, 'err'); } finally { save.disabled = false; }
+    });
+    card.appendChild(h('div', { style: 'margin-top:16px' }, save));
+    el.appendChild(card);
+
+    var bk = h('div', { class: 'card' }, h('div', { class: 'card-head' }, h('h3', { text: t('backup') })));
+    var file = h('input', { type: 'file', accept: 'application/json', style: 'display:none' });
+    file.addEventListener('change', async function () {
+      var f = file.files && file.files[0]; if (!f) return;
+      try {
+        var r = await api('/api/backup', { method: 'POST', body: JSON.parse(await f.text()) });
+        toast('Imported ' + r.imported + ' users', 'ok');
+        await reload();
+      } catch (e) { toast(e.message, 'err'); }
+    });
+    bk.appendChild(h('div', { style: 'display:flex;gap:9px;flex-wrap:wrap' },
+      btn(t('exportBackup'), { icon: 'download', onclick: async function () {
+        try {
+          var r = await api('/api/backup');
+          download('luncher-backup.json', JSON.stringify(r, null, 2), 'application/json');
+          toast('Exported', 'ok');
+        } catch (e) { toast(e.message, 'err'); }
+      } }),
+      btn(t('importBackup'), { icon: 'refresh', onclick: function () { file.click(); } }), file));
+    el.appendChild(bk);
+
+    var sec = h('div', { class: 'card' }, h('div', { class: 'card-head' }, h('h3', { text: t('changePass') })));
+    var p1 = h('input', { type: 'password', placeholder: '••••••••', autocomplete: 'new-password' });
+    var p2 = h('input', { type: 'password', placeholder: '••••••••', autocomplete: 'new-password' });
+    var ch = btn(t('setPassword'), { kind: 'primary', icon: 'key' });
+    ch.addEventListener('click', async function () {
+      if ((p1.value || '').length < 8) { toast('At least 8 characters', 'err'); return; }
+      if (p1.value !== p2.value) { toast('Passwords do not match', 'err'); return; }
+      try {
+        await api('/api/setup', { method: 'POST', body: { password: p1.value, change: true } });
+        toast(t('saved'), 'ok'); p1.value = ''; p2.value = '';
+      } catch (e) { toast(e.message, 'err'); }
+    });
+    sec.appendChild(h('div', { class: 'field-row' }, field('New password', p1), field('Repeat', p2)));
+    sec.appendChild(ch);
+    sec.appendChild(h('div', { class: 'hint', style: 'margin-top:9px', text:
+      'If ADMIN_PASS_HASH is set in the Worker environment it always wins and cannot be changed here.' }));
+    el.appendChild(sec);
+  };
+
+  /* ---------------------------------------------------------------- boot */
+
+  async function boot() {
+    try {
+      var o = await api('/api/overview');
+      state.overview = o; state.settings = o.settings;
+      await loadUsers();
+      state.authed = true;
+      var hash = (location.hash || '').replace('#', '');
+      if (hash && VIEWS[hash]) state.view = hash;
+      document.title = ((o.settings && o.settings.panelName) || 'Luncher') + ' · Panel';
+      renderShell();
+    } catch (e) {
+      if (e.message !== 'unauthorized') toast(e.message, 'err');
+    }
+  }
+
+  window.addEventListener('hashchange', function () {
+    var v = (location.hash || '').replace('#', '');
+    if (v && VIEWS[v] && state.authed) go(v);
+  });
+
+  (async function init() {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
+    try {
+      var st = await fetch('/api/state').then(function (r) { return r.ok ? r.json() : null; });
+      if (st) {
+        state.configured = !!st.configured;
+        state.overview = { presets: st.presets, version: st.version };
+        document.title = (st.panelName || 'Luncher') + ' · Panel';
+      }
+    } catch (e) { /* offline or 500 — fall through to the login screen */ }
+
+    if (!state.configured) { renderAuth(); return; }
+    try { await api('/api/me'); await boot(); }
+    catch (e) { renderAuth(); }
+  })();
+})();
