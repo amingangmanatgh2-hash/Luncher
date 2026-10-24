@@ -1,0 +1,107 @@
+# Would the Deploy button actually work?
+#
+# This exists because it silently did not. A user clicked "Deploy to Workers",
+# Cloudflare's builder cloned the DEFAULT branch — which at that moment contained
+# a single README.md, because the work was still sitting on a feature branch —
+# and wrangler found no config, fell back to static-site detection, and failed
+# with:
+#
+#   Could not detect a directory containing static files (e.g. html, css and js)
+#
+# Every unit test passed while that was true, because none of them ask "can this
+# repository be deployed from its default branch". This workflow asks exactly that.
+#
+# It also replicates the builder's real conditions rather than the comfortable
+# ones: Cloudflare runs `npx wrangler deploy` with NO `npm install` first, so it
+# resolves the LATEST wrangler (4.x), not the version pinned in devDependencies.
+# A repo that only builds under its pinned wrangler would pass here and fail for
+# the user, so both are checked.
+
+name: Deploy check
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deployable:
+    name: Deployable from this branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # The failure above was not a build error — it was a missing file. Check for
+      # the files the Deploy button needs before doing anything expensive, and say
+      # plainly what is absent.
+      - name: Assert the deploy prerequisites exist
+        run: |
+          missing=0
+          for f in wrangler.toml package.json; do
+            if [ -f "$f" ]; then echo "  ok       $f"; else echo "  MISSING  $f"; missing=1; fi
+          done
+          entry=$(grep -E '^main[[:space:]]*=' wrangler.toml | head -1 | sed 's/.*=[[:space:]]*"\(.*\)".*/\1/')
+          if [ -z "$entry" ]; then echo "  MISSING  no 'main' entry in wrangler.toml"; missing=1;
+          elif [ -f "$entry" ]; then echo "  ok       $entry (worker entry)"; else echo "  MISSING  $entry"; missing=1; fi
+          if [ "$missing" -ne 0 ]; then
+            echo "::error::This branch cannot be deployed. The Deploy button clones the default branch; if this is main, the button is broken for every user."
+            exit 1
+          fi
+
+      # No `npm install` here on purpose: neither does Cloudflare's builder, and
+      # the Worker imports nothing from node_modules. If that ever stops being
+      # true this step fails, which is the point.
+      - name: Dry-run deploy with the latest wrangler (what the builder uses)
+        run: npx --yes wrangler@4 deploy --dry-run --outdir dist-check-v4
+
+      - name: Dry-run deploy with the pinned wrangler
+        run: |
+          npm ci --no-audit --no-fund
+          npx wrangler deploy --dry-run --outdir dist-check-v3
+
+      # The two must agree. A divergence means the project depends on behaviour
+      # that changed between major versions, which is invisible until a user hits
+      # it on whichever version the builder happens to resolve that day.
+      - name: Compare both bundles
+        run: |
+          for d in dist-check-v4 dist-check-v3; do
+            echo "  $d:"
+            find "$d" -type f ! -name '*.map' -printf '    %-40f %8s bytes\n' | sort
+          done
+          # The historical esbuild-.css regression shipped `<style>[object Object]</style>`
+          # with no build error at all, so check the emitted bytes, not the exit code.
+          if grep -rq '\[object Object\]' dist-check-v4 dist-check-v3 --include='*.js' --include='*.txt' --include='*.html'; then
+            echo "::error::the bundle contains [object Object] — a text asset was imported as an object"
+            exit 1
+          fi
+          echo "  ok: no [object Object] in either bundle"
+
+      - name: Assert the bundle fits the Workers limits
+        run: |
+          total=$(find dist-check-v4 -type f ! -name '*.map' -printf '%s\n' | paste -sd+ | bc)
+          gz=$(cat $(find dist-check-v4 -type f ! -name '*.map') | gzip -9 | wc -c)
+          echo "  raw: ${total} bytes   gzip: ${gz} bytes"
+          # Free plan: a Worker script must stay under 3 MiB compressed.
+          limit=$((3 * 1024 * 1024))
+          if [ "$gz" -gt "$limit" ]; then
+            echo "::error::gzipped bundle is ${gz} bytes, over the ${limit}-byte free-plan limit"
+            exit 1
+          fi
+          echo "  ok: ${gz} bytes gzipped, well under the 3 MiB free-plan limit"

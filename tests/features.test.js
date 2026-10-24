@@ -175,3 +175,54 @@ test('IRAN_DNS_SERVERS is non-empty and every entry is a plausible resolver', ()
     assert.match(s, /^(https:\/\/|\d)/, `${s} does not look like a resolver`);
   }
 });
+
+/* ------------------------------------------- error status / custom domain */
+
+test('a blocked destination port is a 400, not a 500', async () => {
+  const { safe } = await import('../src/lib/errors.js');
+  const blocked = () => { const e = new Error('port not allowed'); e.code = 'port-blocked'; throw e; };
+  const res = await safe(blocked, {});
+  // It used to return HTTP 500 while the rendered page displayed "400", which
+  // points a monitoring system at a server bug that does not exist.
+  assert.equal(res.status, 400);
+  const body = await res.text();
+  assert.ok(body.includes('400'), 'the page must display the same code it returned');
+  assert.ok(!body.includes('[object Object]'));
+});
+
+test('an unexpected error is still a 500 and never a 1101', async () => {
+  const { safe } = await import('../src/lib/errors.js');
+  const res = await safe(() => { throw new TypeError('boom'); }, {});
+  assert.equal(res.status, 500);
+  const body = await res.text();
+  assert.ok(!body.includes('1101'), 'a thrown exception must be rendered, not leaked as 1101');
+});
+
+test('the JSON error path reports the same status as the HTML path', async () => {
+  const { safe } = await import('../src/lib/errors.js');
+  const blocked = () => { const e = new Error('x'); e.code = 'port-blocked'; throw e; };
+  const res = await safe(blocked, { wantsJson: true });
+  assert.equal(res.status, 400);
+  assert.equal((await res.json()).code, 'port-blocked');
+});
+
+test('customHost is declared, so it survives normalize instead of passing through unvalidated', () => {
+  assert.equal(DEFAULTS.customHost, '', 'it must have a declared default');
+  assert.equal(normalize({}).customHost, '');
+});
+
+test('customHost accepts a bare hostname and strips a scheme', () => {
+  assert.equal(normalize({ customHost: 'proxy.example.com' }).customHost, 'proxy.example.com');
+  assert.equal(normalize({ customHost: 'https://proxy.example.com' }).customHost, 'proxy.example.com');
+  assert.equal(normalize({ customHost: '  proxy.example.com/ ' }).customHost, 'proxy.example.com');
+  assert.equal(normalize({ customHost: 'sub.domain.co.uk:8443' }).customHost, 'sub.domain.co.uk:8443');
+});
+
+test('customHost rejects values that would corrupt a share link', () => {
+  // endpointsFor() puts this string into both host= and the address, so a stray
+  // "/", "@" or space produces links that look plausible and fail everywhere.
+  for (const bad of ['bad host!.com', 'a/b', 'x@y.com', 'a b.com', 'https://', null, 123, {}]) {
+    assert.equal(normalize({ customHost: bad }).customHost, '',
+      `${JSON.stringify(bad)} must be rejected`);
+  }
+});

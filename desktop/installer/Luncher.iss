@@ -6,13 +6,13 @@
 ; should be suspicious of.
 
 #define MyAppName "Luncher Companion"
-#define MyAppVersion "1.0.1"
+#define MyAppVersion "1.0.2"
 #define MyAppPublisher "Luncher"
 #define MyAppExeName "Luncher.exe"
 ; Written into the installer metadata. Updater.CurrentVersion reads the assembly
 ; version and compares it against the release tag, so if this and the csproj ever
 ; disagree the app will either never update or update in a loop.
-#define MyAppVersionInfo "1.0.1.0"
+#define MyAppVersionInfo "1.0.2.0"
 #define MyAppId "{{7C1F4A5E-9B2D-4C6E-8A3F-1D5E6B7C8A90}"
 
 [Setup]

@@ -24,6 +24,11 @@ export const DEFAULTS = {
   cleanIps: [],               // user-scanned IPv4 clean IPs
   cleanIp6: [],
   useWorkerHostAsAddress: true,
+  // Optional custom domain for generated links (a Worker behind your own
+  // hostname). Read by endpointsFor(), which puts it into BOTH the `host=`
+  // parameter and the address, so an unvalidated value silently produces links
+  // that look plausible and fail in every client.
+  customHost: '',
   relays: [],                 // [{name,type:'socks5'|'http',host,port,username,password,tls,scope:'sanctioned'|'all'}]
   unlockSanctioned: true,
   blockAds: true,
@@ -68,6 +73,14 @@ export function normalize(raw) {
     s.netMelliDns = DEFAULTS.netMelliDns;
   }
   s.autoDetectClient = s.autoDetectClient !== false;
+  // A bare hostname, optionally with a port (endpointsFor strips the port).
+  // Rejecting anything else matters because this string is interpolated into a
+  // share link: a stray "/", "@" or space changes how the client parses the URL.
+  if (typeof s.customHost !== 'string') s.customHost = '';
+  s.customHost = s.customHost.trim().replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  if (s.customHost && !/^[A-Za-z0-9]([A-Za-z0-9\-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9\-]*[A-Za-z0-9])?)*(:\d{1,5})?$/.test(s.customHost)) {
+    s.customHost = '';
+  }
   if (typeof s.subCacheSeconds !== 'number' || s.subCacheSeconds < 0 || s.subCacheSeconds > 3600) s.subCacheSeconds = 120;
   if (typeof s.maxLinksPerSub !== 'number' || s.maxLinksPerSub < 1 || s.maxLinksPerSub > 40) s.maxLinksPerSub = 12;
 

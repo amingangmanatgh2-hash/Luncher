@@ -86,6 +86,8 @@
       ipHint: 'آی‌پی تمیز یعنی آی‌پی کلودفلری که اپراتور شما آن را مسدود یا کند نکرده. این مقدار به اپراتور و شهر شما بستگی دارد و مدام عوض می‌شود — حتماً خودتان اسکن کنید.',
       wsPath: 'مسیر تونل', panelName: 'نام پنل', profileTitle: 'عنوان پروفایل',
       language: 'زبان', blockAds: 'مسدودسازی تبلیغات', unlockSanctioned: 'بازکردن سرویس‌های تحریمی',
+      customHost: 'دامنه‌ی اختصاصی',
+      customHostHint: 'اگر ورکر را پشت دامنه‌ی خودت گذاشته‌ای، اینجا بنویس (بدون http:// و بدون /). این مقدار هم در host= و هم در address لینک‌ها می‌رود، پس اگر اشتباه باشد لینک‌ها ظاهر سالم دارند ولی در هیچ کلاینتی کار نمی‌کنند. خالی بگذار تا از hostname خود ورکر استفاده شود.',
       jsonStyle: 'سبک کانفیگ JSON', subCache: 'کش سابسکریپشن (ثانیه)', maxLinks: 'حداکثر کانفیگ در ساب',
       autoDetect: 'تشخیص خودکار کلاینت از User-Agent',
       autoDetectHint: 'وقتی برنامه اشتراک را می‌خواند، پنل گویش لینک مناسب همان برنامه را اول می‌فرستد. PattNG اولویت دارد چون فقط آنجا fm و cs کامل کار می‌کند. یک ?client= صریح همیشه بر تشخیص مقدم است.',
@@ -155,6 +157,8 @@
       ipHint: 'A clean IP is a Cloudflare address your carrier has not blocked or throttled. It depends on your ISP and city and changes constantly — always scan your own.',
       wsPath: 'Tunnel path', panelName: 'Panel name', profileTitle: 'Profile title',
       language: 'Language', blockAds: 'Block ads', unlockSanctioned: 'Unlock sanctioned services',
+      customHost: 'Custom domain',
+      customHostHint: 'If the Worker sits behind your own hostname, put it here (no http://, no trailing /). It is used for both host= and the address in every link, so a wrong value yields links that look fine and fail in every client. Leave blank to use the Worker hostname.',
       jsonStyle: 'JSON config style', subCache: 'Subscription cache (seconds)', maxLinks: 'Max configs per subscription',
       autoDetect: 'Auto-detect the client from its User-Agent',
       autoDetectHint: 'When an app fetches a subscription, the panel puts that app\'s own link dialect first. PattNG has priority, because only there do fm and cs work in full. An explicit ?client= always beats detection.',
@@ -1158,6 +1162,7 @@
     var name = h('input', { value: s.panelName || 'Luncher' });
     var title = h('input', { value: s.profileTitle || 'Luncher' });
     var ws = h('input', { value: s.wsPath || '/luncher', style: 'direction:ltr;font-family:var(--mono)' });
+    var customHost = h('input', { value: s.customHost || '', style: 'direction:ltr;font-family:var(--mono)', placeholder: 'proxy.example.com' });
     var lsel = h('select');
     lsel.appendChild(h('option', { value: 'fa', text: 'فارسی', selected: s.language === 'fa' }));
     lsel.appendChild(h('option', { value: 'en', text: 'English', selected: s.language === 'en' }));
@@ -1173,6 +1178,7 @@
     card.appendChild(h('div', { class: 'field-row' }, field(t('panelName'), name), field(t('profileTitle'), title)));
     card.appendChild(field(t('wsPath'), ws,
       'The path clients dial. Changing it invalidates every existing config.'));
+    card.appendChild(field(t('customHost'), customHost, t('customHostHint')));
     card.appendChild(h('div', { class: 'field-row' },
       field(t('language'), lsel), field(t('subCache'), cache), field(t('maxLinks'), maxl)));
 
@@ -1206,6 +1212,7 @@
       try {
         var r = await api('/api/settings', { method: 'PUT', body: {
           panelName: name.value, profileTitle: title.value, wsPath: ws.value, language: lsel.value,
+          customHost: customHost.value.trim(),
           subCacheSeconds: Number(cache.value), maxLinksPerSub: Number(maxl.value),
           blockAds: ads.checked, unlockSanctioned: sanc.checked, useWorkerHostAsAddress: useHost.checked,
           netMelli: melli.checked, netMelliDns: melliDns.value.trim(), autoDetectClient: autodetect.checked } });
