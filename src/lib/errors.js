@@ -63,8 +63,13 @@ export async function safe(fn, ctx = {}) {
     const detail = escapeHtml(String((err && err.message) || err || 'unexpected error'));
     const hint = HINTS[code] || '';
     if (ctx.onLog) { try { ctx.onLog(err); } catch { /* never let logging throw */ } }
-    if (ctx.wantsJson) return json(500, { ok: false, error: detail, code: code || 'internal' });
-    return html(500, PAGE('Request failed', code === 'port-blocked' ? '400' : '500', detail, hint));
+    // A blocked destination port is the CLIENT's fault — it asked for a port
+    // Workers may not dial — so it is a 400, not a 500. The page used to display
+    // "400" while the response actually carried 500, which sends a monitoring
+    // system looking for a server bug that does not exist.
+    const status = code === 'port-blocked' ? 400 : 500;
+    if (ctx.wantsJson) return json(status, { ok: false, error: detail, code: code || 'internal' });
+    return html(status, PAGE('Request failed', String(status), detail, hint));
   }
 }
 

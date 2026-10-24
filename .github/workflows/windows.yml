@@ -107,9 +107,9 @@ jobs:
           New-Item -ItemType Directory -Force dist | Out-Null
           $setup = Get-ChildItem dist\Luncher-Setup-*.exe | Select-Object -First 1
           if (-not $setup) { Write-Error "installer was not produced"; exit 1 }
-          Compress-Archive -Path desktop/publish/* -DestinationPath dist/Luncher-Portable-1.0.1.zip -Force
+          Compress-Archive -Path desktop/publish/* -DestinationPath dist/Luncher-Portable-1.0.2.zip -Force
           @(
-            "version=1.0.1",
+            "version=1.0.2",
             "commit=$env:GITHUB_SHA",
             "builtAt=$(Get-Date -Format o)",
             "runtime=net8.0-windows, self-contained win-x64",
