@@ -1,0 +1,6 @@
+# Generated from app/src/main/assets/game by scripts/copy-game.cjs
+game/
+
+# Local Electron / electron-builder output
+node_modules/
+dist-windows/

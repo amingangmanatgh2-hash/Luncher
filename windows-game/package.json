@@ -1,0 +1,59 @@
+{
+  "name": "neon-rush-windows",
+  "version": "1.0.0",
+  "description": "NEON RUSH — a neon cyberpunk hover-racer and shooter for Windows.",
+  "license": "MIT",
+  "private": true,
+  "author": "Luncher",
+  "main": "main.cjs",
+  "scripts": {
+    "copy-game": "node scripts/copy-game.cjs",
+    "start": "npm run copy-game && electron .",
+    "dist": "npm run copy-game && electron-builder --win nsis --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "31.7.7",
+    "electron-builder": "24.13.3"
+  },
+  "build": {
+    "appId": "dev.luncher.neonrush",
+    "productName": "NEON RUSH",
+    "copyright": "Copyright © 2026 Luncher",
+    "asar": true,
+    "directories": {
+      "buildResources": "assets",
+      "output": "dist-windows"
+    },
+    "files": [
+      "main.cjs",
+      "game/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "setup.${ext}",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "NEON RUSH",
+      "uninstallDisplayName": "NEON RUSH",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
+    }
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
