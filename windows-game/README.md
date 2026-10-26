@@ -30,6 +30,11 @@ Output:
 windows-game/dist-windows/setup.exe
 ```
 
+NSIS treats a compiler output literally named `setup.exe` as warning 9000;
+therefore electron-builder first emits `NEON-RUSH-Setup.exe` and
+`scripts/finalize-installer.cjs` renames the finished installer to
+`setup.exe` as the last build step.
+
 GitHub Actions runs the same command in `.github/workflows/windows.yml` and
 uploads the result as the **`neon-rush-windows-setup`** artifact. The artifact
 ZIP contains `setup.exe`, a SHA-256 file and build information.

@@ -9,7 +9,7 @@
   "scripts": {
     "copy-game": "node scripts/copy-game.cjs",
     "start": "npm run copy-game && electron .",
-    "dist": "npm run copy-game && electron-builder --win nsis --x64 --publish never"
+    "dist": "npm run copy-game && electron-builder --win nsis --x64 --publish never && node scripts/finalize-installer.cjs"
   },
   "devDependencies": {
     "electron": "31.7.7",
@@ -38,7 +38,7 @@
           ]
         }
       ],
-      "artifactName": "setup.${ext}",
+      "artifactName": "NEON-RUSH-Setup.${ext}",
       "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
