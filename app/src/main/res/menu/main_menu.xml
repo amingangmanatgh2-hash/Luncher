@@ -14,6 +14,10 @@
         android:title="@string/subscription_url"
         app:showAsAction="never" />
     <item
+        android:id="@+id/action_game"
+        android:title="@string/play_game"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_about"
         android:title="@string/about"
         app:showAsAction="never" />

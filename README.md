@@ -60,6 +60,8 @@ Your panel lands at `https://<worker>.workers.dev/panel`.
 
 Get them from [Releases](https://deploy.workers.cloudflare.com/?url=https://github.com/amingangmanatgh2-hash/Luncher/releases). Both are **config managers and Net Melli diagnosticians, not tunnels** — they store your links and hand them to whichever client you already run.
 
+🎮 **Built-in game:** the Android APK also includes **NEON RUSH**, a fully offline 3D neon racer/shooter with its own launcher icon. See [docs/neon-rush.md](docs/neon-rush.md) for controls and browser play.
+
 The Net Melli check is the part nothing here can do server-side: it probes domestic and international endpoints in parallel, and *domestic reachable plus international unreachable* is the signature of the international link being cut, not of a broken config. A Worker outside the country only ever sees its own view of the internet.
 
 > The Windows binary is **unsigned**, so SmartScreen warns on first run: **More info → Run anyway**. Verify the hash instead — that is the check that actually means something.

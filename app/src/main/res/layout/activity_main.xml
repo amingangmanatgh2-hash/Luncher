@@ -78,6 +78,19 @@
             android:lineSpacingExtra="4dp" />
     </LinearLayout>
 
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/gameFab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_margin="20dp"
+        android:contentDescription="@string/play_game"
+        android:text="@string/play_game"
+        android:textColor="@color/bg"
+        app:backgroundTint="@color/teal"
+        app:icon="@android:drawable/ic_media_play"
+        app:iconTint="@color/bg" />
+
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab"
         android:layout_width="wrap_content"

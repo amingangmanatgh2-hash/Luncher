@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#070312">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>NEON RUSH — نئون راش</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <!-- 3D canvas is injected here by game.js -->
+  <div id="vignette"></div>
+  <div id="damage-flash"></div>
+  <div id="nitro-flash"></div>
+  <div id="popups"></div>
+
+  <!-- ============================== HUD ============================== -->
+  <div id="hud" class="hidden">
+    <div class="hud-top">
+      <div class="hud-box hud-score">
+        <div class="hud-label">SCORE امتیاز</div>
+        <div id="score" class="hud-value">0</div>
+        <div class="hud-sub">BEST <span id="best-hud">0</span> · <span id="combo" class="combo">×1</span></div>
+      </div>
+
+      <div class="hud-box hud-center">
+        <div id="sector" class="sector">SECTOR 01</div>
+        <div id="distance" class="hud-sub">0 m</div>
+      </div>
+
+      <div class="hud-actions">
+        <div id="fps" class="fps">60 FPS</div>
+        <button id="btn-sound" class="icon-btn" aria-label="صدا">🔊</button>
+        <button id="btn-fullscreen" class="icon-btn" aria-label="تمام صفحه">⛶</button>
+        <button id="btn-pause" class="icon-btn" aria-label="مکث">⏸</button>
+      </div>
+    </div>
+
+    <div id="banner" class="hidden">
+      <div id="banner-main">SECTOR 02</div>
+      <div id="banner-sub">SOLAR FLARE</div>
+    </div>
+
+    <div id="countdown" class="hidden">3</div>
+
+    <div class="hud-bottom">
+      <div class="touch-left">
+        <button id="btn-left" class="touch-btn steer" aria-label="چپ">◀</button>
+        <button id="btn-right" class="touch-btn steer" aria-label="راست">▶</button>
+      </div>
+
+      <div class="dash">
+        <div class="bar-row">
+          <span class="bar-label">❤</span>
+          <div class="bar-shell"><div id="health-bar" class="bar health"></div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">⚡</span>
+          <div class="bar-shell"><div id="nitro-bar" class="bar nitro"></div></div>
+        </div>
+        <div class="speedo"><span id="speed">0</span><span class="speed-unit">km/h</span></div>
+      </div>
+
+      <div class="touch-right">
+        <button id="btn-fire" class="touch-btn fire" aria-label="شلیک">🔥<small>شلیک</small></button>
+        <button id="btn-nitro" class="touch-btn nitro-btn" aria-label="نیترو">⚡<small>نیترو</small></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================== MENU ============================== -->
+  <div id="menu" class="overlay">
+    <div class="panel menu-panel" dir="rtl">
+      <div class="game-logo" dir="ltr">NEON<span>RUSH</span></div>
+      <div class="game-tag">🏎️ مسابقهٔ نئونی در شهر سایبرپانک — دریفت بزن، لیزر بزن، رکورد بزن!</div>
+
+      <button id="btn-start" class="cta">▶ شروع بازی</button>
+
+      <div class="best-row">🏆 بهترین رکورد: <b id="best-menu" dir="ltr">0</b></div>
+
+      <div class="howto">
+        <div class="howto-item"><span class="key">◀ ▶</span> یا کشیدن انگشت: فرمان</div>
+        <div class="howto-item"><span class="key" dir="ltr">SPACE</span> نیترو ⚡</div>
+        <div class="howto-item"><span class="key" dir="ltr">F / J</span> شلیک لیزر 🔥</div>
+        <div class="howto-item"><span class="key">💎</span> کریستال جمع کن · نزدیک ماشین‌ها رد شو = کمبو!</div>
+      </div>
+
+      <div class="quality-row">
+        <span>🎨 گرافیک:</span>
+        <div class="quality-btns" id="quality-btns">
+          <button data-q="low">کم</button>
+          <button data-q="med">متوسط</button>
+          <button data-q="high" class="on">فول 🔥</button>
+        </div>
+      </div>
+      <div class="ver" dir="ltr">NEON RUSH v1.0 · WebGL / Three.js · 60 FPS</div>
+    </div>
+  </div>
+
+  <!-- ============================== PAUSE ============================== -->
+  <div id="pause-menu" class="overlay hidden">
+    <div class="panel" dir="rtl">
+      <div class="panel-title">⏸ مکث</div>
+      <button id="btn-resume" class="cta">▶ ادامه</button>
+      <button id="btn-restart-pause" class="ghost-btn">↻ شروع از اول</button>
+      <button id="btn-menu-pause" class="ghost-btn">🏠 منوی اصلی</button>
+      <div class="quality-row">
+        <span>🎨 گرافیک:</span>
+        <div class="quality-btns" id="quality-btns-pause">
+          <button data-q="low">کم</button>
+          <button data-q="med">متوسط</button>
+          <button data-q="high">فول 🔥</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================== GAME OVER ============================== -->
+  <div id="gameover" class="overlay hidden">
+    <div class="panel" dir="rtl">
+      <div class="panel-title boom">💥 منفجر شدی!</div>
+      <div id="new-record" class="new-record hidden">🏆 رکورد جدید!</div>
+      <div class="final-stats">
+        <div class="stat"><span class="stat-label">امتیاز</span><b id="final-score" dir="ltr">0</b></div>
+        <div class="stat"><span class="stat-label">مسافت</span><b id="final-distance" dir="ltr">0 m</b></div>
+        <div class="stat"><span class="stat-label">درون نابودشده</span><b id="final-kills" dir="ltr">0</b></div>
+        <div class="stat"><span class="stat-label">بهترین رکورد</span><b id="final-best" dir="ltr">0</b></div>
+      </div>
+      <button id="btn-again" class="cta">↻ یه دست دیگه!</button>
+      <button id="btn-menu-over" class="ghost-btn">🏠 منوی اصلی</button>
+    </div>
+  </div>
+
+  <div id="toast" class="hidden"></div>
+  <div id="webgl-error" class="overlay hidden">
+    <div class="panel" dir="rtl">
+      <div class="panel-title">⚠ WebGL پشتیبانی نمی‌شود</div>
+      <p>این بازی به شتاب‌دهندهٔ گرافیکی (WebGL) نیاز دارد. لطفاً در یک مرورگر یا دستگاه جدیدتر اجرا کنید.</p>
+    </div>
+  </div>
+</div>
+
+<noscript><div style="color:#fff;padding:2rem;font-family:sans-serif">JavaScript is required to play NEON RUSH.</div></noscript>
+<script src="vendor/three.min.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

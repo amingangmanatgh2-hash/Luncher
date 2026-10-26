@@ -59,12 +59,14 @@ class MainActivity : AppCompatActivity() {
         binding.list.adapter = adapter
 
         binding.fab.setOnClickListener { showAddLinkDialog(null) }
+        binding.gameFab.setOnClickListener { openGame() }
 
         binding.toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.action_net_check -> { runNetCheck(); true }
                 R.id.action_add_link -> { showAddLinkDialog(null); true }
                 R.id.action_add_sub -> { showAddSubDialog(); true }
+                R.id.action_game -> { openGame(); true }
                 R.id.action_about -> { showAbout(); true }
                 else -> false
             }
@@ -291,6 +293,11 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             toast(getString(R.string.no_client))
         }
+    }
+
+    /** Open the bundled, fully offline NEON RUSH game. */
+    private fun openGame() {
+        startActivity(Intent(this, GameActivity::class.java))
     }
 
     private fun copy(text: String) {

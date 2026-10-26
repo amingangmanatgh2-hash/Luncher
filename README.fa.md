@@ -61,6 +61,8 @@ npx wrangler deploy
 
 از [Releases](https://deploy.workers.cloudflare.com/?url=https://github.com/amingangmanatgh2-hash/Luncher/releases) بگیر. هر دو **مدیر کانفیگ** هستند و **تشخیص‌دهنده‌ی نت ملی**، نه تونل: کانفیگ را به کلاینتی که داری می‌سپارند.
 
+🎮 **بازی داخل APK:** نسخهٔ اندروید حالا بازی سه‌بعدی آفلاین **NEON RUSH** را هم دارد؛ بعد از نصب با آیکون جدا باز می‌شود. راهنما و کنترل‌ها: [docs/neon-rush.md](docs/neon-rush.md).
+
 > فایل ویندوز **امضا نشده** است، پس SmartScreen هشدار می‌دهد → **More info → Run anyway**.
 
 ## تست

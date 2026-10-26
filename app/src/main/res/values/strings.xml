@@ -44,4 +44,6 @@
     <string name="ms">%1$d ms</string>
     <string name="about">About</string>
     <string name="about_body">Luncher Companion manages configs and diagnoses your network. It is not itself a proxy: tapping Open in tunnel app hands the link to PattNG, v2rayNG, Hiddify or another installed client, which does the actual tunneling.</string>
+    <string name="game_name">Neon Rush</string>
+    <string name="play_game">🎮 Play NEON RUSH</string>
 </resources>

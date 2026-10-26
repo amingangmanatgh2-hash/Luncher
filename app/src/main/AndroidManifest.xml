@@ -45,5 +45,23 @@
                 <data android:scheme="luncher" />
             </intent-filter>
         </activity>
+
+        <!-- NEON RUSH is intentionally a second launcher entry: installing the
+             APK puts the game itself on the home screen, while the existing
+             companion tools remain available under the Luncher icon. -->
+        <activity
+            android:name=".GameActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize"
+            android:exported="true"
+            android:hardwareAccelerated="true"
+            android:label="@string/game_name"
+            android:launchMode="singleTop"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/Theme.Luncher.Game">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>
