@@ -107,11 +107,12 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
+          $version = (Select-String -Path desktop/Luncher.Companion.csproj -Pattern '<Version>([^<]+)</Version>').Matches[0].Groups[1].Value
           $setup = Get-ChildItem dist\Luncher-Setup-*.exe | Select-Object -First 1
           if (-not $setup) { Write-Error "installer was not produced"; exit 1 }
-          Compress-Archive -Path desktop/publish/* -DestinationPath dist/Luncher-Portable-1.0.2.zip -Force
+          Compress-Archive -Path desktop/publish/* -DestinationPath "dist/Luncher-Portable-$version.zip" -Force
           @(
-            "version=1.0.2",
+            "version=$version",
             "commit=$env:GITHUB_SHA",
             "builtAt=$(Get-Date -Format o)",
             "runtime=net8.0-windows, self-contained win-x64",
@@ -250,6 +251,21 @@ jobs:
           path: dist-game/
           if-no-files-found: error
           retention-days: 14
+
+      # Attach the game installer to the same app-v* GitHub Release as the
+      # Android APK and the Luncher Windows companion. On a manual run this
+      # remains a draft, matching the other release publishers in this repo.
+      - name: Publish NEON RUSH setup.exe to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/app-v') || inputs.publish_release == true
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ github.workspace }}/dist-game/setup.exe
+            ${{ github.workspace }}/dist-game/SHA256SUMS-neon-rush.txt
+            ${{ github.workspace }}/dist-game/build-info-neon-rush.txt
+          generate_release_notes: true
+          draft: ${{ !startsWith(github.ref, 'refs/tags/app-v') }}
+          fail_on_unmatched_files: true
 
       - name: Report a game build failure on the pull request
         if: failure() && github.event_name == 'pull_request'
