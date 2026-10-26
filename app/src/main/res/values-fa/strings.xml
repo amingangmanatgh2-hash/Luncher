@@ -44,4 +44,6 @@
     <string name="ms">%1$d میلی‌ثانیه</string>
     <string name="about">درباره</string>
     <string name="about_body">لانچر کامپانیون کانفیگ‌ها را مدیریت و شبکهٔ شما را عیب‌یابی می‌کند. خودش پروکسی نیست: با زدن «باز کردن در برنامهٔ تونل» لینک به PattNG یا v2rayNG یا Hiddify سپرده می‌شود و تونل واقعی را آن‌ها می‌سازند.</string>
+    <string name="game_name">نئون راش</string>
+    <string name="play_game">🎮 بازی NEON RUSH</string>
 </resources>
